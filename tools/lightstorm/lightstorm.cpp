@@ -1,8 +1,11 @@
 #include <filesystem>
 #include <llvm/Support/CommandLine.h>
 #include <llvm/Support/FileSystem.h>
+#include <mlir/Dialect/Func/IR/FuncOps.h>
+#include <mlir/Dialect/Index/IR/IndexDialect.h>
 
 #include "lightstorm/compiler/compiler.h"
+#include "lightstorm/dialect/rite.h"
 
 llvm::cl::OptionCategory LightstormCategory("lightstorm");
 
@@ -25,8 +28,19 @@ int main(int argc, char **argv) {
     return 1;
   }
 
+  mlir::DialectRegistry registry;
+  registry.insert<rite::RiteDialect>();
+  registry.insert<mlir::func::FuncDialect>();
+  registry.insert<mlir::index::IndexDialect>();
+
+  mlir::MLIRContext context(registry);
+  context.loadAllAvailableDialects();
+
   lightstorm::Compiler compiler;
-  compiler.compileSourceFile(Input.getValue());
+  auto module = compiler.compileSourceFile(context, Input.getValue());
+  assert(module && "Could not convert Ruby to MLIR");
+
+  module->print(llvm::errs());
 
   return 0;
 }

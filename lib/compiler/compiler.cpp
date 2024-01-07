@@ -1,16 +1,17 @@
 #include "lightstorm/compiler/compiler.h"
+#include "converter.h"
 #include <cassert>
 #include <iostream>
+#include <mlir/IR/Verifier.h>
+#include <mlir/Pass/PassManager.h>
+#include <mlir/Transforms/Passes.h>
 #include <mruby.h>
 #include <mruby/compile.h>
 
 using namespace lightstorm;
 
-extern "C" {
-void mrb_codedump_all(mrb_state *, struct RProc *);
-}
-
-void Compiler::compileSourceFile(const std::filesystem::path &file_path) {
+std::optional<mlir::ModuleOp> Compiler::compileSourceFile(mlir::MLIRContext &context,
+                                                          const std::filesystem::path &file_path) {
   assert(exists(file_path) && "Cannot compile file");
   mrb_state *mrb = mrb_open();
   assert(mrb && "Out of memory?");
@@ -31,25 +32,38 @@ void Compiler::compileSourceFile(const std::filesystem::path &file_path) {
     fclose(f);
     mrbc_context_free(mrb, mrbc);
     mrb_close(mrb);
-    return;
+    return {};
   }
 
   if (0 < p->nerr) {
     /* parse error */
     std::cerr << file_path.c_str() << ":" << p->error_buffer[0].lineno << ": "
-              << p->error_buffer[0].message << "\n";
+              << (p->error_buffer[0].message ?: "") << "\n";
     fclose(f);
     mrb_parser_free(p);
     mrbc_context_free(mrb, mrbc);
     mrb_close(mrb);
-    return;
+    return {};
   }
 
   struct RProc *proc = mrb_generate_code(mrb, p);
-  mrb_codedump_all(mrb, proc);
-
+  assert(proc && "Could not generate code");
+  auto module = convertProcToMLIR(context, mrb, proc);
   fclose(f);
   mrb_parser_free(p);
   mrbc_context_free(mrb, mrbc);
   mrb_close(mrb);
+
+  if (mlir::failed(mlir::verify(module))) {
+    return {};
+  }
+
+  mlir::PassManager construction(&context);
+  construction.addPass(mlir::createMem2Reg());
+  if (construction.run(module).failed()) {
+    module.print(llvm::errs());
+    llvm::errs() << "\nFailed to run passes\n";
+  }
+
+  return module;
 }

@@ -10,6 +10,7 @@ ExternalProject_Add(mruby
   BUILD_IN_SOURCE ON
   INSTALL_COMMAND ""
   BUILD_BYPRODUCTS ${MRUBY_STATIC} ${MRUBY_BINARY}
+  BUILD_ALWAYS
 )
 
 add_executable(mruby_binary IMPORTED GLOBAL)
