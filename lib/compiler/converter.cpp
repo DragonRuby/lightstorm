@@ -1,5 +1,6 @@
 #include "converter.h"
 #include "lightstorm/dialect/rite.h"
+#include <mlir/Dialect/Arith/IR/Arith.h>
 #include <mlir/Dialect/Func/IR/FuncOps.h>
 #include <mlir/Dialect/Index/IR/IndexOps.h>
 #include <mruby/opcode.h>
@@ -63,6 +64,8 @@ static void createBody(mlir::MLIRContext &context, mrb_state *mrb, mlir::func::F
   auto functionLocation = mlir::FileLineColLoc::get(&context, filename, line, 0);
   auto entryBlock = func.addEntryBlock();
 
+  auto state = func.getArgument(0);
+
   mlir::OpBuilder builder(&context);
   builder.setInsertionPointToEnd(entryBlock);
 
@@ -112,8 +115,8 @@ static void createBody(mlir::MLIRContext &context, mrb_state *mrb, mlir::func::F
       // OPCODE(LOADSELF,   B)        /* R(a) = self */
       regs.a = READ_B();
       vreg(regs.a);
-      auto val = builder.create<rite::LoadSelfOp>(location, mrb_value_t, address());
-      store(regs.a, val);
+      auto def = builder.create<rite::LoadSelfOp>(location, mrb_value_t, address(), state);
+      store(regs.a, def);
     } break;
 
     case OP_LOADI__1:
@@ -127,19 +130,20 @@ static void createBody(mlir::MLIRContext &context, mrb_state *mrb, mlir::func::F
     case OP_LOADI_7: {
       // OPCODE(LOADI_x,   B)        /* R(a) = mrb_int(x) */
       regs.a = READ_B();
-      int64_t value = opcode - OP_LOADI__1 - 1;
-      auto val = builder.create<rite::LoadIOp>(
-          location, mrb_value_t, address(), builder.getI64IntegerAttr(value));
-      store(regs.a, val);
+      int64_t i = opcode - OP_LOADI__1 - 1;
+      auto value = builder.create<mlir::arith::ConstantOp>(location, builder.getI64IntegerAttr(i));
+      auto def = builder.create<rite::LoadIOp>(location, mrb_value_t, address(), state, value);
+      store(regs.a, def);
     } break;
 
     case OP_LOADI: {
       // OPCODE(LOADI,      BB)       /* R(a) = mrb_int(b) */
       regs.a = READ_B();
       regs.b = READ_B();
-      auto val = builder.create<rite::LoadIOp>(
-          location, mrb_value_t, address(), builder.getI64IntegerAttr(int64_t(regs.b)));
-      store(regs.a, val);
+      auto value = builder.create<mlir::arith::ConstantOp>(
+          location, builder.getI64IntegerAttr(int64_t(regs.b)));
+      auto def = builder.create<rite::LoadIOp>(location, mrb_value_t, address(), state, value);
+      store(regs.a, def);
     } break;
 
     case OP_SEND: {
@@ -165,21 +169,22 @@ static void createBody(mlir::MLIRContext &context, mrb_state *mrb, mlir::func::F
         // actual argv packed in an array
         usesAttr.push_back(regs.a + 1);
       }
-      auto val = builder.create<rite::SendOp>(location,
+      auto def = builder.create<rite::SendOp>(location,
                                               mrb_value_t,
                                               address(),
+                                              state,
                                               load(regs.a),
                                               symbol(irep->syms[regs.b]),
                                               builder.getI64IntegerAttr(regs.c),
                                               argv);
-      store(regs.a, val);
+      store(regs.a, def);
     } break;
 
     case OP_RETURN: {
       // OPCODE(RETURN,     B)        /* return R(a) (normal) */
       regs.a = READ_B();
       auto val = load(regs.a);
-      builder.create<rite::ReturnOp>(location, mrb_value_t, address(), val);
+      builder.create<rite::ReturnOp>(location, mrb_value_t, address(), state, val);
     } break;
 
     default: {
