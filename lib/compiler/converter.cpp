@@ -194,6 +194,47 @@ static void createBody(mlir::MLIRContext &context, mrb_state *mrb, mlir::func::F
       builder.create<rite::ReturnOp>(location, mrb_value_t, address(), state, val);
     } break;
 
+#pragma mark - Comparisons
+
+    case OP_GE: {
+      // OPCODE(GE,         B)        /* R(a) = R(a)>=R(a+1) */
+      regs.a = READ_B();
+      auto def = builder.create<rite::GeOp>(
+          location, mrb_value_t, address(), state, load(regs.a), load(regs.a + 1));
+      store(regs.a, def);
+    } break;
+
+    case OP_LT: {
+      // OPCODE(LT,         B)        /* R(a) = R(a)<R(a+1) */
+      regs.a = READ_B();
+      auto def = builder.create<rite::LtOp>(
+          location, mrb_value_t, address(), state, load(regs.a), load(regs.a + 1));
+      store(regs.a, def);
+    } break;
+
+    case OP_LE: {
+      // OPCODE(LE,         B)        /* R(a) = R(a)<=R(a+1) */
+      regs.a = READ_B();
+      auto def = builder.create<rite::LeOp>(
+          location, mrb_value_t, address(), state, load(regs.a), load(regs.a + 1));
+      store(regs.a, def);
+    } break;
+    case OP_EQ: {
+      // OPCODE(EQ,         B)        /* R(a) = R(a)==R(a+1) */
+      regs.a = READ_B();
+      auto def = builder.create<rite::EqOp>(
+          location, mrb_value_t, address(), state, load(regs.a), load(regs.a + 1));
+      store(regs.a, def);
+    } break;
+
+    case OP_GT: {
+      // OPCODE(GT,         B)        /* R(a) = R(a)>R(a+1) */
+      regs.a = READ_B();
+      auto def = builder.create<rite::GtOp>(
+          location, mrb_value_t, address(), state, load(regs.a), load(regs.a + 1));
+      store(regs.a, def);
+    } break;
+
     default: {
       using namespace std::string_literals;
       auto msg = "Hit unsupported op: "s + fs_opcode_name(opcode);

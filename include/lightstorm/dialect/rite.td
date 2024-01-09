@@ -37,6 +37,10 @@ def SymAttr : Rite_Attr<"mrb_sym", "Symbol"> {
 class Rite_Op<string mnemonic, list<Trait> traits = []> :
     Op<Rite_Dialect, mnemonic, traits>;
 
+//
+// Loads
+//
+
 // OPCODE(LOADSELF,   B)        /* R(a) = self */
 def LoadSelfOp : Rite_Op<"OP_LOADSELF"> {
   let summary = "OP_LOADSELF";
@@ -67,6 +71,64 @@ def LoadNilOp : Rite_Op<"OP_LOADNIL"> {
   }];
 }
 
+//
+// Comparisons
+//
+
+// OPCODE(EQ,         B)        /* R(a) = R(a)==R(a+1) */
+def EqOp : Rite_Op<"OP_EQ"> {
+  let summary = "OP_EQ";
+  let arguments = (ins IndexAttr:$address, StateType:$mrb, ValueType:$lhs, ValueType:$rhs);
+  let results = (outs ValueType);
+  let assemblyFormat = [{
+    `(` operands `)` `{` `address` `=` $address `}` attr-dict `->` type(results)
+  }];
+}
+
+// OPCODE(GT,         B)        /* R(a) = R(a)>R(a+1) */
+def GtOp : Rite_Op<"OP_GT"> {
+  let summary = "OP_GT";
+  let arguments = (ins IndexAttr:$address, StateType:$mrb, ValueType:$lhs, ValueType:$rhs);
+  let results = (outs ValueType);
+  let assemblyFormat = [{
+    `(` operands `)` `{` `address` `=` $address `}` attr-dict `->` type(results)
+  }];
+}
+
+// OPCODE(GE,         B)        /* R(a) = R(a)>=R(a+1) */
+def GeOp : Rite_Op<"OP_GE"> {
+  let summary = "OP_GE";
+  let arguments = (ins IndexAttr:$address, StateType:$mrb, ValueType:$lhs, ValueType:$rhs);
+  let results = (outs ValueType);
+  let assemblyFormat = [{
+    `(` operands `)` `{` `address` `=` $address `}` attr-dict `->` type(results)
+  }];
+}
+
+// OPCODE(LT,         B)        /* R(a) = R(a)<R(a+1) */
+def LtOp : Rite_Op<"OP_LT"> {
+  let summary = "OP_LT";
+  let arguments = (ins IndexAttr:$address, StateType:$mrb, ValueType:$lhs, ValueType:$rhs);
+  let results = (outs ValueType);
+  let assemblyFormat = [{
+    `(` operands `)` `{` `address` `=` $address `}` attr-dict `->` type(results)
+  }];
+}
+
+// OPCODE(LE,         B)        /* R(a) = R(a)<=R(a+1) */
+def LeOp : Rite_Op<"OP_LE"> {
+  let summary = "OP_LE";
+  let arguments = (ins IndexAttr:$address, StateType:$mrb, ValueType:$lhs, ValueType:$rhs);
+  let results = (outs ValueType);
+  let assemblyFormat = [{
+    `(` operands `)` `{` `address` `=` $address `}` attr-dict `->` type(results)
+  }];
+}
+
+//
+// Calls
+//
+
 // OPCODE(SEND,       BBB)      /* R(a) = call(R(a),Syms(b),R(a+1),...,R(a+c)) */
 def SendOp : Rite_Op<"OP_SEND"> {
   let summary = "OP_SEND";
@@ -88,6 +150,10 @@ def ReturnOp : Rite_Op<"OP_RETURN", [Terminator]> {
     `(` operands `)` `{` `address` `=` $address `}` attr-dict `->` type(results)
   }];
 }
+
+//
+// SSA/Load/Store
+//
 
 def VirtualRegisterOp : Rite_Op<"vreg", [DeclareOpInterfaceMethods<PromotableAllocationOpInterface>]> {
   let summary = "Mimics alloca behavior. Used for SSA/Mem2Reg.";
