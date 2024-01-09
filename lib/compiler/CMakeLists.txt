@@ -1,4 +1,4 @@
-add_library(lightstorm_compiler
+add_library(lightstorm_compiler STATIC
   compiler.cpp
   converter.cpp
 )

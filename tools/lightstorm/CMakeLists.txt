@@ -1,5 +1,11 @@
 add_executable(lightstorm lightstorm.cpp)
-target_link_libraries(lightstorm PRIVATE lightstorm_compiler rite_dialect LLVMOption)
+target_link_libraries(lightstorm PRIVATE
+  lightstorm_compiler
+  lightstorm_conversion
+  rite_dialect
+  LLVMOption
+  MLIRTargetCpp
+)
 target_compile_options(lightstorm PRIVATE -fno-rtti -fno-exceptions)
 target_include_directories(lightstorm
   PRIVATE
