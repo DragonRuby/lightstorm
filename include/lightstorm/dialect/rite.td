@@ -43,7 +43,7 @@ def LoadSelfOp : Rite_Op<"OP_LOADSELF"> {
   let arguments = (ins IndexAttr:$address, StateType:$mrb);
   let results = (outs ValueType);
   let assemblyFormat = [{
-    `(` $mrb `)` `{` `address` `=` $address `}` attr-dict `->` type(results)
+    `(` operands `)` `{` `address` `=` $address `}` attr-dict `->` type(results)
   }];
 }
 
@@ -53,7 +53,17 @@ def LoadIOp : Rite_Op<"OP_LOADI"> {
   let arguments = (ins IndexAttr:$address, StateType:$mrb, I64:$value);
   let results = (outs ValueType);
   let assemblyFormat = [{
-    `(` $mrb `,` $value `)` `{` `address` `=` $address `}` attr-dict `->` type(results)
+    `(` operands `)` `{` `address` `=` $address `}` attr-dict `->` type(results)
+  }];
+}
+
+// OPCODE(LOADNIL,    B)        /* R(a) = nil */
+def LoadNilOp : Rite_Op<"OP_LOADNIL"> {
+  let summary = "OP_LOADNIL";
+  let arguments = (ins IndexAttr:$address, StateType:$mrb);
+  let results = (outs ValueType);
+  let assemblyFormat = [{
+    `(` operands `)` `{` `address` `=` $address `}` attr-dict `->` type(results)
   }];
 }
 
@@ -75,7 +85,7 @@ def ReturnOp : Rite_Op<"OP_RETURN", [Terminator]> {
   let arguments = (ins IndexAttr:$address, StateType:$mrb, ValueType:$src);
   let results = (outs ValueType);
   let assemblyFormat = [{
-    `(` $mrb `,` $src `)` `{` `address` `=` $address `}` attr-dict `->` type(results)
+    `(` operands `)` `{` `address` `=` $address `}` attr-dict `->` type(results)
   }];
 }
 

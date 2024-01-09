@@ -1,5 +1,6 @@
 #include "lightstorm/conversion/conversion.h"
 #include "lightstorm/dialect/rite.h"
+#include <mlir/Dialect/Arith/IR/Arith.h>
 #include <mlir/Dialect/EmitC/IR/EmitC.h>
 #include <mlir/Dialect/Func/IR/FuncOps.h>
 #include <mlir/IR/BuiltinDialect.h>
@@ -204,6 +205,7 @@ struct ReturnOpConversion : public LightstormConversionPattern<rite::ReturnOp> {
 void lightstorm::convertRiteToEmitC(mlir::MLIRContext &context, mlir::ModuleOp module) {
   mlir::ConversionTarget target(context);
   target.addLegalOp<mlir::ModuleOp>();
+  target.addLegalOp<mlir::arith::ConstantOp>();
   target.addLegalDialect<mlir::func::FuncDialect>();
   target.addLegalDialect<mlir::BuiltinDialect>();
   target.addLegalDialect<mlir::emitc::EmitCDialect>();
@@ -253,9 +255,10 @@ void lightstorm::convertRiteToEmitC(mlir::MLIRContext &context, mlir::ModuleOp m
 
   DirectOpConversion(rite::LoadSelfOp, ls_load_self);
   DirectOpConversion(rite::LoadIOp, ls_load_i);
+  DirectOpConversion(rite::LoadNilOp, ls_load_nil);
 
   mlir::FrozenRewritePatternSet frozenPatterns(std::move(patterns));
-  if (mlir::failed(mlir::applyPartialConversion(module.getOperation(), target, frozenPatterns))) {
+  if (mlir::failed(mlir::applyFullConversion(module.getOperation(), target, frozenPatterns))) {
     module.getOperation()->print(llvm::errs(), mlir::OpPrintingFlags().enableDebugInfo(true, true));
     llvm::errs() << "Cannot apply C conversion\n";
     return;

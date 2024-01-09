@@ -146,6 +146,13 @@ static void createBody(mlir::MLIRContext &context, mrb_state *mrb, mlir::func::F
       store(regs.a, def);
     } break;
 
+    case OP_LOADNIL: {
+      // OPCODE(LOADNIL,   B)        /* R(a) = nil */
+      regs.a = READ_B();
+      auto def = builder.create<rite::LoadNilOp>(location, mrb_value_t, address(), state);
+      store(regs.a, def);
+    } break;
+
     case OP_SEND: {
       // OPCODE(SEND,       BBB)      /* R(a) = call(R(a),Syms(b),R(a+1),...,R(a+c)) */
       regs.a = READ_B();
