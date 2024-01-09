@@ -278,7 +278,7 @@ void lightstorm::convertMLIRToC(mlir::MLIRContext &context, mlir::ModuleOp modul
   std::for_each(toRemove.begin(), toRemove.end(), [&](auto &op) { op->remove(); });
 
   mlir::OpBuilder b(module.getBodyRegion());
-  b.create<mlir::emitc::IncludeOp>(module->getLoc(), "lightstorm_runtime.h");
+  b.create<mlir::emitc::IncludeOp>(module->getLoc(), "lightstorm/runtime/runtime.h");
 
   if (mlir::failed(mlir::emitc::translateToCpp(module, out))) {
     llvm::errs() << "Cannot convert MLIR to C\n";

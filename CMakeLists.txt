@@ -20,4 +20,4 @@ include(AddMLIR)
 
 add_subdirectory(lib)
 add_subdirectory(tools)
-add_subdirectory(runtime)
+add_subdirectory(tests)
