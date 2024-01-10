@@ -2,6 +2,7 @@
 #include <llvm/Support/CommandLine.h>
 #include <llvm/Support/FileSystem.h>
 #include <mlir/Dialect/Arith/IR/Arith.h>
+#include <mlir/Dialect/ControlFlow/IR/ControlFlow.h>
 #include <mlir/Dialect/EmitC/IR/EmitC.h>
 #include <mlir/Dialect/Func/IR/FuncOps.h>
 #include <mlir/Dialect/Index/IR/IndexDialect.h>
@@ -40,6 +41,7 @@ int main(int argc, char **argv) {
   registry.insert<mlir::index::IndexDialect>();
   registry.insert<mlir::emitc::EmitCDialect>();
   registry.insert<mlir::arith::ArithDialect>();
+  registry.insert<mlir::cf::ControlFlowDialect>();
 
   mlir::MLIRContext context(registry);
   context.loadAllAvailableDialects();

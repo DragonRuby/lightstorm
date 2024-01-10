@@ -1,8 +1,11 @@
 #include "lightstorm/conversion/conversion.h"
 #include "lightstorm/dialect/rite.h"
 #include <mlir/Dialect/Arith/IR/Arith.h>
+#include <mlir/Dialect/ControlFlow/IR/ControlFlow.h>
+#include <mlir/Dialect/ControlFlow/IR/ControlFlowOps.h>
 #include <mlir/Dialect/EmitC/IR/EmitC.h>
 #include <mlir/Dialect/Func/IR/FuncOps.h>
+#include <mlir/Dialect/Func/Transforms/FuncConversions.h>
 #include <mlir/IR/BuiltinDialect.h>
 #include <mlir/IR/Verifier.h>
 #include <mlir/Target/Cpp/CppEmitter.h>
@@ -109,21 +112,6 @@ template <typename Op> struct DirectOpConversion : public LightstormConversionPa
   std::string name;
 };
 
-struct LoadIOpConversion : public LightstormConversionPattern<rite::LoadIOp> {
-  explicit LoadIOpConversion(LightstormConversionContext &conversionContext)
-      : LightstormConversionPattern(conversionContext) {}
-
-  mlir::LogicalResult matchAndRewrite(rite::LoadIOp op, llvm::ArrayRef<mlir::Value> operands,
-                                      llvm::ArrayRef<mlir::Type> operandTypes,
-                                      mlir::Type resultType,
-                                      mlir::ConversionPatternRewriter &rewriter) const final {
-    auto func = lookupOrCreateFn(op, "ls_load_i", operandTypes, resultType);
-    auto newOp = rewriter.create<mlir::func::CallOp>(op->getLoc(), func, operands);
-    rewriter.replaceOp(op, newOp.getResult(0));
-    return mlir::success();
-  }
-};
-
 struct SendOpConversion : public LightstormConversionPattern<rite::SendOp> {
   explicit SendOpConversion(LightstormConversionContext &conversionContext)
       : LightstormConversionPattern(conversionContext) {}
@@ -196,6 +184,33 @@ struct ReturnOpConversion : public LightstormConversionPattern<rite::ReturnOp> {
   }
 };
 
+struct BranchPredicateOpConversion : public LightstormConversionPattern<rite::BranchPredicateOp> {
+  explicit BranchPredicateOpConversion(LightstormConversionContext &conversionContext)
+      : LightstormConversionPattern(conversionContext) {}
+
+  static std::string predicateName(rite::BranchPredicate predicate) {
+    switch (predicate) {
+    case rite::BranchPredicate::bp_true:
+      return "ls_value_true";
+    case rite::BranchPredicate::bp_false:
+      return "ls_value_false";
+    case rite::BranchPredicate::bp_nil:
+      return "ls_value_nil";
+    }
+  }
+
+  mlir::LogicalResult matchAndRewrite(rite::BranchPredicateOp op,
+                                      llvm::ArrayRef<mlir::Value> operands,
+                                      llvm::ArrayRef<mlir::Type> operandTypes,
+                                      mlir::Type resultType,
+                                      mlir::ConversionPatternRewriter &rewriter) const final {
+    auto func = lookupOrCreateFn(op, predicateName(op.getPredicate()), operandTypes, resultType);
+    auto newOp = rewriter.create<mlir::func::CallOp>(op->getLoc(), func, operands);
+    rewriter.replaceOp(op, newOp.getResult(0));
+    return mlir::success();
+  }
+};
+
 } // namespace lightstorm_conversion
 
 #define DirectOpConversion(Op, function)                                                           \
@@ -211,6 +226,9 @@ void lightstorm::convertRiteToEmitC(mlir::MLIRContext &context, mlir::ModuleOp m
   target.addLegalDialect<mlir::emitc::EmitCDialect>();
 
   mlir::TypeConverter typeConverter;
+
+  target.addDynamicallyLegalDialect<mlir::cf::ControlFlowDialect>(
+      [&](mlir::Operation *op) { return typeConverter.isLegal(op->getOperandTypes()); });
 
   target.addDynamicallyLegalOp<mlir::func::FuncOp>(
       [&](mlir::func::FuncOp op) { return typeConverter.isLegal(op.getFunctionType()); });
@@ -244,11 +262,13 @@ void lightstorm::convertRiteToEmitC(mlir::MLIRContext &context, mlir::ModuleOp m
 
   LightstormConversionContext loweringContext{ context, typeConverter };
 
+  mlir::populateBranchOpInterfaceTypeConversionPattern(patterns, typeConverter);
   patterns.add<
       ///
       lightstorm_conversion::BlockArgumentTypeConversion,
       lightstorm_conversion::SendOpConversion,
-      lightstorm_conversion::ReturnOpConversion
+      lightstorm_conversion::ReturnOpConversion,
+      lightstorm_conversion::BranchPredicateOpConversion
 
       ///
       >(loweringContext);
@@ -288,7 +308,7 @@ void lightstorm::convertMLIRToC(mlir::MLIRContext &context, mlir::ModuleOp modul
   mlir::OpBuilder b(module.getBodyRegion());
   b.create<mlir::emitc::IncludeOp>(module->getLoc(), "lightstorm/runtime/runtime.h");
 
-  if (mlir::failed(mlir::emitc::translateToCpp(module, out))) {
+  if (mlir::failed(mlir::emitc::translateToCpp(module, out, true))) {
     llvm::errs() << "Cannot convert MLIR to C\n";
   }
 }

@@ -1,5 +1,6 @@
 include "mlir/IR/OpBase.td"
 include "mlir/IR/AttrTypeBase.td"
+include "mlir/IR/EnumAttr.td"
 include "mlir/Interfaces/MemorySlotInterfaces.td"
 
 def Rite_Dialect : Dialect {
@@ -179,4 +180,28 @@ def StoreOp : Rite_Op<"store", [DeclareOpInterfaceMethods<PromotableMemOpInterfa
   let assemblyFormat = [{
     `(` $slot `,` $value  `)` attr-dict
   }];
+}
+
+//
+// Jumps and predicates
+//
+
+// OP_JMPIF
+def BranchPredicateTrue : I32EnumAttrCase<"bp_true", 1>;
+// OP_JMPNOT
+def BranchPredicateFalse : I32EnumAttrCase<"bp_false", 2>;
+// OP_JMPNIL
+def BranchPredicateNil : I32EnumAttrCase<"bp_nil", 3>;
+
+def BranchPredicate : I32EnumAttr<
+    "BranchPredicate",
+    "branch predicate",
+    [BranchPredicateTrue, BranchPredicateFalse, BranchPredicateNil]> {
+  let cppNamespace = "rite";
+}
+
+def BranchPredicateOp : Rite_Op<"branch_predicate"> {
+  let summary = "branch_predicate";
+  let arguments = (ins ValueType:$value, BranchPredicate:$predicate);
+  let results = (outs I1);
 }

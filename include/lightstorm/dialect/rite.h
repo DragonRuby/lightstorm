@@ -6,6 +6,7 @@
 #include <mlir/Interfaces/MemorySlotInterfaces.h>
 
 #include "RiteDialect.h.inc"
+#include "RiteEnums.h.inc"
 
 #define GET_TYPEDEF_CLASSES
 #include "RiteTypeDefs.h.inc"

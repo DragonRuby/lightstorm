@@ -1,10 +1,11 @@
 #include "converter.h"
 #include "lightstorm/dialect/rite.h"
 #include <mlir/Dialect/Arith/IR/Arith.h>
+#include <mlir/Dialect/ControlFlow/IR/ControlFlowOps.h>
 #include <mlir/Dialect/Func/IR/FuncOps.h>
-#include <mlir/Dialect/Index/IR/IndexOps.h>
 #include <mruby/opcode.h>
 #include <mruby/proc.h>
+#include <unordered_set>
 
 using namespace lightstorm;
 
@@ -93,12 +94,22 @@ static void createBody(mlir::MLIRContext &context, mrb_state *mrb, mlir::func::F
     return builder.create<rite::LoadOp>(functionLocation, mrb_value_t, r);
   };
 
+  // Potential jump targets
+  std::unordered_map<int64_t, mlir::Operation *> addressMapping;
+  // Real jump targets
+  std::unordered_map<mlir::Operation *, std::vector<int64_t>> jumpTargets;
+
+  // Just a temp instruction for construction of CFG
+  auto tempRegister = vreg(0);
+
   const mrb_code *sp = irep->iseq;
   for (uint16_t pc_offset = 0; pc_offset < irep->ilen; pc_offset++) {
     const mrb_code *pc_base = (irep->iseq + pc_offset);
     const mrb_code *pc = pc_base;
     line = mrb_debug_get_line(mrb, irep, pc - irep->iseq);
     auto location = mlir::FileLineColLoc::get(&context, filename, line, pc_offset);
+
+    addressMapping[pc_offset] = &entryBlock->back();
 
     auto address = [&]() { return builder.getIndexAttr(pc_offset); };
 
@@ -235,6 +246,58 @@ static void createBody(mlir::MLIRContext &context, mrb_state *mrb, mlir::func::F
       store(regs.a, def);
     } break;
 
+#pragma mark - Jumps
+
+    case OP_JMP: {
+      // OPCODE(JMP,        S)        /* pc+=a */
+      regs.a = READ_S();
+      uint32_t target = (pc - irep->iseq) + (int16_t)regs.a;
+      // inserting a temp unused variable just to attach the target to something
+      jumpTargets[load(0)] = { target };
+    } break;
+
+    // TODO: should just forbid this construct?
+    case OP_JMPUW: {
+      // OPCODE(JMPUW,      S)        /* unwind_and_jump_to(a) */
+      regs.a = READ_S();
+      uint32_t target = (pc - irep->iseq) + (int16_t)regs.a;
+      // inserting a temp unused variable just to attach the target to something
+      jumpTargets[load(0)] = { target };
+    } break;
+
+    case OP_JMPNOT: {
+      // OPCODE(JMPNOT,     BS)       /* if !R(a) pc+=b */
+      regs.a = READ_B();
+      regs.b = READ_S();
+      uint32_t target = (pc - irep->iseq) + (int16_t)regs.b;
+      auto next_address = (uint16_t)(pc_offset + pc - pc_base);
+      auto pred = builder.create<rite::BranchPredicateOp>(
+          location, builder.getI1Type(), load(regs.a), rite::BranchPredicate::bp_false);
+      jumpTargets[pred] = { target, next_address };
+    } break;
+
+    case OP_JMPIF: {
+      // OPCODE(JMPIF,      BS)       /* if R(a) pc+=b */
+      regs.a = READ_B();
+      regs.b = READ_S();
+      uint32_t target = (pc - irep->iseq) + (int16_t)regs.b;
+      auto next_address = (uint16_t)(pc_offset + pc - pc_base);
+      auto pred = builder.create<rite::BranchPredicateOp>(
+          location, builder.getI1Type(), load(regs.a), rite::BranchPredicate::bp_true);
+      jumpTargets[pred] = { target, next_address };
+    } break;
+
+    case OP_JMPNIL: {
+      // OPCODE(JMPNIL,     BS)       /* if R(a)==nil pc+=b */
+      regs.a = READ_B();
+      regs.b = READ_S();
+      uint32_t target = (pc - irep->iseq) + (int16_t)regs.b;
+      auto next_address = (uint16_t)(pc_offset + pc - pc_base);
+      auto pred = builder.create<rite::BranchPredicateOp>(
+          location, builder.getI1Type(), load(regs.a), rite::BranchPredicate::bp_nil);
+      jumpTargets[pred] = { target, next_address };
+    } break;
+
     default: {
       using namespace std::string_literals;
       auto msg = "Hit unsupported op: "s + fs_opcode_name(opcode);
@@ -243,6 +306,50 @@ static void createBody(mlir::MLIRContext &context, mrb_state *mrb, mlir::func::F
     }
 
     pc_offset += pc - pc_base - 1;
+  }
+
+  for (auto &[address, op] : addressMapping) {
+    addressMapping[address] = op->getNextNode();
+  }
+
+  std::unordered_map<mlir::Operation *, mlir::Operation *> fallthroughJumps;
+
+  // Split blocks
+  for (auto &[op, targets] : jumpTargets) {
+    std::vector<mlir::Operation *> opTargets;
+    for (auto target : targets) {
+      auto targetOp = addressMapping.at(target);
+      assert(targetOp);
+      auto previousOp = targetOp->getPrevNode();
+      assert(previousOp);
+      targetOp->getBlock()->splitBlock(targetOp);
+      if (!jumpTargets.contains(previousOp)) {
+        fallthroughJumps[previousOp] = targetOp;
+      }
+    }
+  }
+
+  for (auto &[op, targets] : jumpTargets) {
+    builder.setInsertionPointAfter(op);
+    if (llvm::isa<rite::BranchPredicateOp>(op)) {
+      assert(op->getNumResults() == 1);
+      assert(targets.size() == 2);
+      builder.create<mlir::cf::CondBranchOp>(op->getLoc(),
+                                             op->getResult(0),
+                                             addressMapping.at(targets[0])->getBlock(),
+                                             addressMapping.at(targets[1])->getBlock());
+    } else {
+      assert(targets.size() == 1);
+      builder.create<mlir::cf::BranchOp>(op->getLoc(), addressMapping.at(targets[0])->getBlock());
+    }
+  }
+
+  for (auto &[op, target] : fallthroughJumps) {
+    builder.setInsertionPointAfter(op);
+    builder.create<mlir::cf::BranchOp>(op->getLoc(), target->getBlock());
+  }
+  if (tempRegister->getUsers().empty()) {
+    tempRegister->erase();
   }
 }
 

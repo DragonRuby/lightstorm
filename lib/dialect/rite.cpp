@@ -8,6 +8,7 @@ using namespace mlir;
 using namespace rite;
 
 #include "RiteDialect.cpp.inc"
+#include "RiteEnums.cpp.inc"
 
 #define GET_ATTRDEF_CLASSES
 #include "RiteAttrDefs.cpp.inc"

@@ -12,5 +12,6 @@ target_link_libraries(lightstorm_conversion
   rite_dialect
   MLIRTransforms
   MLIREmitCDialect
+  MLIRFuncTransforms
 )
 target_compile_options(lightstorm_conversion PRIVATE -fno-rtti -fno-exceptions)
