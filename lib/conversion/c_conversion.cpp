@@ -68,29 +68,6 @@ template <typename Op> struct LightstormConversionPattern : public mlir::Convers
 
 namespace lightstorm_conversion {
 
-struct BlockArgumentTypeConversion : public LightstormConversionPattern<mlir::func::FuncOp> {
-  explicit BlockArgumentTypeConversion(LightstormConversionContext &loweringContext)
-      : LightstormConversionPattern(loweringContext) {}
-
-  mlir::LogicalResult matchAndRewrite(mlir::func::FuncOp op, llvm::ArrayRef<mlir::Value> operands,
-                                      llvm::ArrayRef<mlir::Type> operandTypes,
-                                      mlir::Type resultType,
-                                      mlir::ConversionPatternRewriter &rewriter) const final {
-    auto newType =
-        conversionContext.converter.convertType(op.getFunctionType()).cast<mlir::FunctionType>();
-    auto newFunc = rewriter.create<mlir::func::FuncOp>(op.getLoc(), op.getSymName(), newType);
-    rewriter.inlineRegionBefore(op.getBody(), newFunc.addEntryBlock());
-    rewriter.eraseBlock(&newFunc.getBlocks().back());
-    if (mlir::failed(
-            rewriter.convertRegionTypes(&newFunc.getBody(), conversionContext.converter))) {
-      llvm::errs() << "failed to convert region types\n";
-      return mlir::failure();
-    }
-    rewriter.eraseOp(op);
-    return mlir::success();
-  }
-};
-
 template <typename Op> struct DirectOpConversion : public LightstormConversionPattern<Op> {
   explicit DirectOpConversion(LightstormConversionContext &conversionContext, std::string name)
       : LightstormConversionPattern<Op>(conversionContext), name(std::move(name)) {}
@@ -290,10 +267,10 @@ void lightstorm::convertRiteToEmitC(mlir::MLIRContext &context, mlir::ModuleOp m
 
   LightstormConversionContext loweringContext{ context, typeConverter };
 
+  mlir::populateAnyFunctionOpInterfaceTypeConversionPattern(patterns, typeConverter);
   mlir::populateBranchOpInterfaceTypeConversionPattern(patterns, typeConverter);
   patterns.add<
       ///
-      lightstorm_conversion::BlockArgumentTypeConversion,
       lightstorm_conversion::SendOpConversion,
       lightstorm_conversion::ReturnOpConversion,
       lightstorm_conversion::BranchPredicateOpConversion,
