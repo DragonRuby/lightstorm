@@ -35,13 +35,13 @@ mrb_value ls_compare_lt(mrb_state *mrb, mrb_value lhs, mrb_value rhs);
 mrb_value ls_compare_le(mrb_state *mrb, mrb_value lhs, mrb_value rhs);
 mrb_value ls_compare_eq(mrb_state *mrb, mrb_value lhs, mrb_value rhs);
 
-LIGHTSTORM_INLINE int ls_value_true(mrb_value value) {
+LIGHTSTORM_INLINE int ls_predicate_is_true(mrb_value value) {
   return mrb_true_p(value);
 }
-LIGHTSTORM_INLINE int ls_value_false(mrb_value value) {
+LIGHTSTORM_INLINE int ls_predicate_is_false(mrb_value value) {
   return mrb_false_p(value);
 }
-LIGHTSTORM_INLINE int ls_value_nil(mrb_value value) {
+LIGHTSTORM_INLINE int ls_predicate_is_nil(mrb_value value) {
   return mrb_nil_p(value);
 }
 

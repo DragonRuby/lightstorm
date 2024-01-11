@@ -162,12 +162,33 @@ static void createBody(mlir::MLIRContext &context, mrb_state *mrb, mlir::func::F
       store(regs.a, def);
     } break;
 
+    case OP_LOADINEG: {
+      // OPCODE(LOADINEG,      BB)       /* R(a) = mrb_int(-b) */
+      regs.a = READ_B();
+      regs.b = READ_B();
+      auto value = builder.create<mlir::arith::ConstantOp>(
+          location, builder.getI64IntegerAttr(-int64_t(regs.b)));
+      auto def = builder.create<rite::LoadIOp>(location, mrb_value_t, state, value);
+      store(regs.a, def);
+    } break;
+
+    case OP_LOADI16: {
+      // OPCODE(LOADI16,    BS)       /* R(a) = mrb_int(b) */
+      regs.a = READ_B();
+      regs.b = READ_S();
+      int64_t val = (int16_t)regs.b;
+      auto value =
+          builder.create<mlir::arith::ConstantOp>(location, builder.getI64IntegerAttr(val));
+      auto def = builder.create<rite::LoadIOp>(location, mrb_value_t, state, value);
+      store(regs.a, def);
+    } break;
+
     case OP_LOADI32: {
       // OPCODE(LOADI32,    BSS)      /* R(a) = mrb_int((b<<16)+c) */
       regs.a = READ_B();
       regs.b = READ_S();
       regs.c = READ_S();
-      int64_t val = regs.b;
+      int64_t val = (int16_t)regs.b;
       val = (val << 16) + regs.c;
       auto value =
           builder.create<mlir::arith::ConstantOp>(location, builder.getI64IntegerAttr(val));
@@ -222,154 +243,76 @@ static void createBody(mlir::MLIRContext &context, mrb_state *mrb, mlir::func::F
       builder.create<rite::ReturnOp>(location, mrb_value_t, state, val);
     } break;
 
-#pragma mark - Comparisons
-
+    case OP_EQ:
+    case OP_LT:
+    case OP_LE:
+    case OP_GT:
     case OP_GE: {
-      // OPCODE(GE,         B)        /* R(a) = R(a)>=R(a+1) */
       regs.a = READ_B();
-      auto def =
-          builder.create<rite::GeOp>(location, mrb_value_t, state, load(regs.a), load(regs.a + 1));
+      rite::CmpKind kinds[] = { rite::CmpKind::eq,
+                                rite::CmpKind::lt,
+                                rite::CmpKind::le,
+                                rite::CmpKind::gt,
+                                rite::CmpKind::ge };
+      int64_t idx = opcode - OP_EQ;
+      auto def = builder.create<rite::CmpOp>(
+          location, mrb_value_t, state, load(regs.a), load(regs.a + 1), kinds[idx]);
       store(regs.a, def);
     } break;
 
-    case OP_LT: {
-      // OPCODE(LT,         B)        /* R(a) = R(a)<R(a+1) */
-      regs.a = READ_B();
-      auto def =
-          builder.create<rite::LtOp>(location, mrb_value_t, state, load(regs.a), load(regs.a + 1));
-      store(regs.a, def);
-    } break;
-
-    case OP_LE: {
-      // OPCODE(LE,         B)        /* R(a) = R(a)<=R(a+1) */
-      regs.a = READ_B();
-      auto def =
-          builder.create<rite::LeOp>(location, mrb_value_t, state, load(regs.a), load(regs.a + 1));
-      store(regs.a, def);
-    } break;
-    case OP_EQ: {
-      // OPCODE(EQ,         B)        /* R(a) = R(a)==R(a+1) */
-      regs.a = READ_B();
-      auto def =
-          builder.create<rite::EqOp>(location, mrb_value_t, state, load(regs.a), load(regs.a + 1));
-      store(regs.a, def);
-    } break;
-
-    case OP_GT: {
-      // OPCODE(GT,         B)        /* R(a) = R(a)>R(a+1) */
-      regs.a = READ_B();
-      auto def =
-          builder.create<rite::GtOp>(location, mrb_value_t, state, load(regs.a), load(regs.a + 1));
-      store(regs.a, def);
-    } break;
-
-#pragma mark - Jumps
-
+    // TODO: should just reject OP_JMPUW ?
+    case OP_JMPUW:
     case OP_JMP: {
-      // OPCODE(JMP,        S)        /* pc+=a */
       regs.a = READ_S();
       uint32_t target = (pc - irep->iseq) + (int16_t)regs.a;
       // inserting a temp unused variable just to attach the target to something
       jumpTargets[load(0)] = { target };
     } break;
 
-    // TODO: should just forbid this construct?
-    case OP_JMPUW: {
-      // OPCODE(JMPUW,      S)        /* unwind_and_jump_to(a) */
-      regs.a = READ_S();
-      uint32_t target = (pc - irep->iseq) + (int16_t)regs.a;
-      // inserting a temp unused variable just to attach the target to something
-      jumpTargets[load(0)] = { target };
-    } break;
-
-    case OP_JMPNOT: {
-      // OPCODE(JMPNOT,     BS)       /* if !R(a) pc+=b */
-      regs.a = READ_B();
-      regs.b = READ_S();
-      uint32_t target = (pc - irep->iseq) + (int16_t)regs.b;
-      auto next_address = (uint16_t)(pc_offset + pc - pc_base);
-      auto pred = builder.create<rite::BranchPredicateOp>(
-          location, builder.getI1Type(), load(regs.a), rite::BranchPredicate::bp_false);
-      jumpTargets[pred] = { target, next_address };
-    } break;
-
-    case OP_JMPIF: {
-      // OPCODE(JMPIF,      BS)       /* if R(a) pc+=b */
-      regs.a = READ_B();
-      regs.b = READ_S();
-      uint32_t target = (pc - irep->iseq) + (int16_t)regs.b;
-      auto next_address = (uint16_t)(pc_offset + pc - pc_base);
-      auto pred = builder.create<rite::BranchPredicateOp>(
-          location, builder.getI1Type(), load(regs.a), rite::BranchPredicate::bp_true);
-      jumpTargets[pred] = { target, next_address };
-    } break;
-
+    case OP_JMPIF:
+    case OP_JMPNOT:
     case OP_JMPNIL: {
-      // OPCODE(JMPNIL,     BS)       /* if R(a)==nil pc+=b */
       regs.a = READ_B();
       regs.b = READ_S();
+
+      rite::BranchPredicateKind kinds[] = { rite::BranchPredicateKind::is_true,
+                                            rite::BranchPredicateKind::is_false,
+                                            rite::BranchPredicateKind::is_nil };
+
+      int64_t idx = opcode - OP_JMPIF;
+
       uint32_t target = (pc - irep->iseq) + (int16_t)regs.b;
       auto next_address = (uint16_t)(pc_offset + pc - pc_base);
       auto pred = builder.create<rite::BranchPredicateOp>(
-          location, builder.getI1Type(), load(regs.a), rite::BranchPredicate::bp_nil);
+          location, builder.getI1Type(), load(regs.a), kinds[idx]);
       jumpTargets[pred] = { target, next_address };
     } break;
 
-#pragma mark - Arithmetic
-
-    case OP_ADDI: {
-      // OPCODE(ADDI,       BB)       /* R(a) = R(a)+mrb_int(b) */
-      regs.a = READ_B();
-      regs.b = READ_B();
-      auto value = builder.create<mlir::arith::ConstantOp>(
-          location, builder.getI64IntegerAttr(int64_t(regs.b)));
-      auto rhs = builder.create<rite::LoadIOp>(location, mrb_value_t, state, value);
-      auto def = builder.create<rite::ArithOp>(
-          location, mrb_value_t, state, load(regs.a), rhs, rite::Arith::add);
-      store(regs.a, def);
-    } break;
-
-    case OP_ADD: {
-      // OPCODE(ADD,       B)       /* R(a) = R(a)+R(a+1) */
-      regs.a = READ_B();
-      auto def = builder.create<rite::ArithOp>(
-          location, mrb_value_t, state, load(regs.a), load(regs.a + 1), rite::Arith::add);
-      store(regs.a, def);
-    } break;
-
-    case OP_SUBI: {
-      // OPCODE(SUBI,       BB)       /* R(a) = R(a)-mrb_int(b) */
-      regs.a = READ_B();
-      regs.b = READ_B();
-      auto value = builder.create<mlir::arith::ConstantOp>(
-          location, builder.getI64IntegerAttr(int64_t(regs.b)));
-      auto rhs = builder.create<rite::LoadIOp>(location, mrb_value_t, state, value);
-      auto def = builder.create<rite::ArithOp>(
-          location, mrb_value_t, state, load(regs.a), rhs, rite::Arith::sub);
-      store(regs.a, def);
-    } break;
-
-    case OP_SUB: {
-      // OPCODE(SUB,       B)       /* R(a) = R(a)-R(a+1) */
-      regs.a = READ_B();
-      auto def = builder.create<rite::ArithOp>(
-          location, mrb_value_t, state, load(regs.a), load(regs.a + 1), rite::Arith::sub);
-      store(regs.a, def);
-    } break;
-
-    case OP_MUL: {
-      // OPCODE(MUL,       B)       /* R(a) = R(a)*R(a+1) */
-      regs.a = READ_B();
-      auto def = builder.create<rite::ArithOp>(
-          location, mrb_value_t, state, load(regs.a), load(regs.a + 1), rite::Arith::mul);
-      store(regs.a, def);
-    } break;
-
+    case OP_ADD:
+    case OP_ADDI:
+    case OP_SUB:
+    case OP_SUBI:
+    case OP_MUL:
     case OP_DIV: {
-      // OPCODE(DIV,       B)       /* R(a) = R(a)/R(a+1) */
       regs.a = READ_B();
+      mlir::Value rhs{};
+      if (opcode == OP_ADDI || opcode == OP_SUBI) {
+        regs.b = READ_B();
+        auto value = builder.create<mlir::arith::ConstantOp>(
+            location, builder.getI64IntegerAttr(int64_t(regs.b)));
+        rhs = builder.create<rite::LoadIOp>(location, mrb_value_t, state, value);
+      } else {
+        rhs = load(regs.a + 1);
+      }
+
+      rite::ArithKind kinds[] = {
+        rite::ArithKind::add, rite::ArithKind::add, rite::ArithKind::sub,
+        rite::ArithKind::sub, rite::ArithKind::mul, rite::ArithKind::div
+      };
+
+      int64_t idx = opcode - OP_ADD;
       auto def = builder.create<rite::ArithOp>(
-          location, mrb_value_t, state, load(regs.a), load(regs.a + 1), rite::Arith::div);
+          location, mrb_value_t, state, load(regs.a), rhs, kinds[idx]);
       store(regs.a, def);
     } break;
 

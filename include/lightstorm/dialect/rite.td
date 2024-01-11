@@ -76,50 +76,27 @@ def LoadNilOp : Rite_Op<"OP_LOADNIL"> {
 // Comparisons
 //
 
-// OPCODE(EQ,         B)        /* R(a) = R(a)==R(a+1) */
-def EqOp : Rite_Op<"OP_EQ"> {
-  let summary = "OP_EQ";
-  let arguments = (ins StateType:$mrb, ValueType:$lhs, ValueType:$rhs);
-  let results = (outs ValueType);
-  let assemblyFormat = [{
-    `(` operands `)` attr-dict `->` type(results)
-  }];
+// OP_EQ
+def CmpEq : I32EnumAttrCase<"eq", 1>;
+// OP_LT
+def CmpLt : I32EnumAttrCase<"lt", 2>;
+// OP_LE
+def CmpLe : I32EnumAttrCase<"le", 3>;
+// OP_GT
+def CmpGt : I32EnumAttrCase<"gt", 4>;
+// OP_GE
+def CmpGe : I32EnumAttrCase<"ge", 5>;
+
+def CmpKind : I32EnumAttr<
+    "CmpKind",
+    "Comparison operation kind",
+    [CmpEq, CmpLt, CmpLe, CmpGt, CmpGe]> {
+  let cppNamespace = "rite";
 }
 
-// OPCODE(GT,         B)        /* R(a) = R(a)>R(a+1) */
-def GtOp : Rite_Op<"OP_GT"> {
-  let summary = "OP_GT";
-  let arguments = (ins StateType:$mrb, ValueType:$lhs, ValueType:$rhs);
-  let results = (outs ValueType);
-  let assemblyFormat = [{
-    `(` operands `)` attr-dict `->` type(results)
-  }];
-}
-
-// OPCODE(GE,         B)        /* R(a) = R(a)>=R(a+1) */
-def GeOp : Rite_Op<"OP_GE"> {
-  let summary = "OP_GE";
-  let arguments = (ins StateType:$mrb, ValueType:$lhs, ValueType:$rhs);
-  let results = (outs ValueType);
-  let assemblyFormat = [{
-    `(` operands `)` attr-dict `->` type(results)
-  }];
-}
-
-// OPCODE(LT,         B)        /* R(a) = R(a)<R(a+1) */
-def LtOp : Rite_Op<"OP_LT"> {
-  let summary = "OP_LT";
-  let arguments = (ins StateType:$mrb, ValueType:$lhs, ValueType:$rhs);
-  let results = (outs ValueType);
-  let assemblyFormat = [{
-    `(` operands `)` attr-dict `->` type(results)
-  }];
-}
-
-// OPCODE(LE,         B)        /* R(a) = R(a)<=R(a+1) */
-def LeOp : Rite_Op<"OP_LE"> {
-  let summary = "OP_LE";
-  let arguments = (ins StateType:$mrb, ValueType:$lhs, ValueType:$rhs);
+def CmpOp : Rite_Op<"cmp"> {
+  let summary = "cmp";
+  let arguments = (ins StateType:$mrb, ValueType:$lhs, ValueType:$rhs, CmpKind:$kind);
   let results = (outs ValueType);
   let assemblyFormat = [{
     `(` operands `)` attr-dict `->` type(results)
@@ -187,14 +164,14 @@ def StoreOp : Rite_Op<"store", [DeclareOpInterfaceMethods<PromotableMemOpInterfa
 //
 
 // OP_JMPIF
-def BranchPredicateTrue : I32EnumAttrCase<"bp_true", 1>;
+def BranchPredicateTrue : I32EnumAttrCase<"is_true", 1>;
 // OP_JMPNOT
-def BranchPredicateFalse : I32EnumAttrCase<"bp_false", 2>;
+def BranchPredicateFalse : I32EnumAttrCase<"is_false", 2>;
 // OP_JMPNIL
-def BranchPredicateNil : I32EnumAttrCase<"bp_nil", 3>;
+def BranchPredicateNil : I32EnumAttrCase<"is_nil", 3>;
 
-def BranchPredicate : I32EnumAttr<
-    "BranchPredicate",
+def BranchPredicateKind : I32EnumAttr<
+    "BranchPredicateKind",
     "branch predicate",
     [BranchPredicateTrue, BranchPredicateFalse, BranchPredicateNil]> {
   let cppNamespace = "rite";
@@ -202,7 +179,7 @@ def BranchPredicate : I32EnumAttr<
 
 def BranchPredicateOp : Rite_Op<"branch_predicate"> {
   let summary = "branch_predicate";
-  let arguments = (ins ValueType:$value, BranchPredicate:$predicate);
+  let arguments = (ins ValueType:$value, BranchPredicateKind:$kind);
   let results = (outs I1);
 }
 
@@ -219,8 +196,8 @@ def ArithMul : I32EnumAttrCase<"mul", 3>;
 // OP_DIV
 def ArithDiv : I32EnumAttrCase<"div", 4>;
 
-def Arith : I32EnumAttr<
-    "Arith",
+def ArithKind : I32EnumAttr<
+    "ArithKind",
     "Arithmetic operation",
     [ArithAdd, ArithSub, ArithMul, ArithDiv]> {
   let cppNamespace = "rite";
@@ -228,7 +205,7 @@ def Arith : I32EnumAttr<
 
 def ArithOp : Rite_Op<"arith"> {
   let summary = "arith";
-  let arguments = (ins StateType:$mrb, ValueType:$lhs, ValueType:$rhs, Arith:$kind);
+  let arguments = (ins StateType:$mrb, ValueType:$lhs, ValueType:$rhs, ArithKind:$kind);
   let results = (outs ValueType);
   let assemblyFormat = [{
     `(` operands `)` attr-dict `->` type(results)

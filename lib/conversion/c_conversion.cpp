@@ -161,51 +161,21 @@ struct ReturnOpConversion : public LightstormConversionPattern<rite::ReturnOp> {
   }
 };
 
-struct BranchPredicateOpConversion : public LightstormConversionPattern<rite::BranchPredicateOp> {
-  explicit BranchPredicateOpConversion(LightstormConversionContext &conversionContext)
-      : LightstormConversionPattern(conversionContext) {}
+template <typename Op> struct KindOpConversion : public LightstormConversionPattern<Op> {
+  explicit KindOpConversion(LightstormConversionContext &conversionContext)
+      : LightstormConversionPattern<Op>(conversionContext) {}
 
-  static std::string predicateName(rite::BranchPredicate predicate) {
-    switch (predicate) {
-    case rite::BranchPredicate::bp_true:
-      return "ls_value_true";
-    case rite::BranchPredicate::bp_false:
-      return "ls_value_false";
-    case rite::BranchPredicate::bp_nil:
-      return "ls_value_nil";
-    }
+  static std::string kindName(rite::CmpKind kind) {
+    return "ls_compare_" + rite::stringifyCmpKind(kind).str();
+  }
+  static std::string kindName(rite::BranchPredicateKind kind) {
+    return "ls_predicate_" + rite::stringifyBranchPredicateKind(kind).str();
+  }
+  static std::string kindName(rite::ArithKind kind) {
+    return "ls_arith_" + rite::stringifyArithKind(kind).str();
   }
 
-  mlir::LogicalResult matchAndRewrite(rite::BranchPredicateOp op,
-                                      llvm::ArrayRef<mlir::Value> operands,
-                                      llvm::ArrayRef<mlir::Type> operandTypes,
-                                      mlir::Type resultType,
-                                      mlir::ConversionPatternRewriter &rewriter) const final {
-    auto func = lookupOrCreateFn(op, predicateName(op.getPredicate()), operandTypes, resultType);
-    auto newOp = rewriter.create<mlir::func::CallOp>(op->getLoc(), func, operands);
-    rewriter.replaceOp(op, newOp.getResult(0));
-    return mlir::success();
-  }
-};
-
-struct ArithOpConversion : public LightstormConversionPattern<rite::ArithOp> {
-  explicit ArithOpConversion(LightstormConversionContext &conversionContext)
-      : LightstormConversionPattern(conversionContext) {}
-
-  static std::string kindName(rite::Arith kind) {
-    switch (kind) {
-    case rite::Arith::add:
-      return "ls_arith_add";
-    case rite::Arith::sub:
-      return "ls_arith_sub";
-    case rite::Arith::mul:
-      return "ls_arith_mul";
-    case rite::Arith::div:
-      return "ls_arith_div";
-    }
-  }
-
-  mlir::LogicalResult matchAndRewrite(rite::ArithOp op, llvm::ArrayRef<mlir::Value> operands,
+  mlir::LogicalResult matchAndRewrite(Op op, llvm::ArrayRef<mlir::Value> operands,
                                       llvm::ArrayRef<mlir::Type> operandTypes,
                                       mlir::Type resultType,
                                       mlir::ConversionPatternRewriter &rewriter) const final {
@@ -273,8 +243,9 @@ void lightstorm::convertRiteToEmitC(mlir::MLIRContext &context, mlir::ModuleOp m
       ///
       lightstorm_conversion::SendOpConversion,
       lightstorm_conversion::ReturnOpConversion,
-      lightstorm_conversion::BranchPredicateOpConversion,
-      lightstorm_conversion::ArithOpConversion
+      lightstorm_conversion::KindOpConversion<rite::BranchPredicateOp>,
+      lightstorm_conversion::KindOpConversion<rite::ArithOp>,
+      lightstorm_conversion::KindOpConversion<rite::CmpOp>
 
       ///
       >(loweringContext);
@@ -282,11 +253,6 @@ void lightstorm::convertRiteToEmitC(mlir::MLIRContext &context, mlir::ModuleOp m
   DirectOpConversion(rite::LoadSelfOp, ls_load_self);
   DirectOpConversion(rite::LoadIOp, ls_load_i);
   DirectOpConversion(rite::LoadNilOp, ls_load_nil);
-  DirectOpConversion(rite::GtOp, ls_compare_gt);
-  DirectOpConversion(rite::GeOp, ls_compare_ge);
-  DirectOpConversion(rite::LtOp, ls_compare_lt);
-  DirectOpConversion(rite::LeOp, ls_compare_le);
-  DirectOpConversion(rite::EqOp, ls_compare_eq);
 
   mlir::FrozenRewritePatternSet frozenPatterns(std::move(patterns));
   if (mlir::failed(mlir::applyFullConversion(module.getOperation(), target, frozenPatterns))) {
