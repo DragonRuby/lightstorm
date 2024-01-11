@@ -45,16 +45,21 @@ cmake -G Ninja -DCMAKE_PREFIX_PATH=/opt/lightstorm.toolchain.dir/llvm \
   ../lightstorm
 ```
 
-Build a test (`tests/end2end/00.rb`):
+Build a test (`tests/end2end/loads.rb`):
 
 ```bash
-> ninja 00.rb.exe
-> ./tests/end2end/00.rb.exe
+> ninja loads.rb.exe
+> ./tests/end2end/loads.rb.exe
+1
+-1
 42
+-42
+1000
+-1000
+1000000
+-1000000
 
-false
 true
 false
-true
-false
+main
 ```
