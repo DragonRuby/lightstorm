@@ -127,14 +127,6 @@ static void createBody(mlir::MLIRContext &context, mrb_state *mrb, mlir::func::F
       store(regs.a, load(regs.b));
     } break;
 
-    case OP_LOADSELF: {
-      // OPCODE(LOADSELF,   B)        /* R(a) = self */
-      regs.a = READ_B();
-      vreg(regs.a);
-      auto def = builder.create<rite::LoadSelfOp>(location, mrb_value_t, state);
-      store(regs.a, def);
-    } break;
-
     case OP_LOADI__1:
     case OP_LOADI_0:
     case OP_LOADI_1:
@@ -196,10 +188,17 @@ static void createBody(mlir::MLIRContext &context, mrb_state *mrb, mlir::func::F
       store(regs.a, def);
     } break;
 
-    case OP_LOADNIL: {
-      // OPCODE(LOADNIL,   B)        /* R(a) = nil */
+    case OP_LOADNIL:
+    case OP_LOADSELF:
+    case OP_LOADT:
+    case OP_LOADF: {
       regs.a = READ_B();
-      auto def = builder.create<rite::LoadNilOp>(location, mrb_value_t, state);
+      rite::LoadValueKind kinds[] = { rite::LoadValueKind::nil_value,
+                                      rite::LoadValueKind::self_value,
+                                      rite::LoadValueKind::true_value,
+                                      rite::LoadValueKind::false_value };
+      int64_t idx = opcode - OP_LOADNIL;
+      auto def = builder.create<rite::LoadValueOp>(location, mrb_value_t, state, kinds[idx]);
       store(regs.a, def);
     } break;
 

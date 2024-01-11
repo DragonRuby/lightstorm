@@ -42,16 +42,6 @@ class Rite_Op<string mnemonic, list<Trait> traits = []> :
 // Loads
 //
 
-// OPCODE(LOADSELF,   B)        /* R(a) = self */
-def LoadSelfOp : Rite_Op<"OP_LOADSELF"> {
-  let summary = "OP_LOADSELF";
-  let arguments = (ins StateType:$mrb);
-  let results = (outs ValueType);
-  let assemblyFormat = [{
-    `(` operands `)` attr-dict `->` type(results)
-  }];
-}
-
 // OPCODE(LOADI,      BB)       /* R(a) = mrb_int(b) */
 def LoadIOp : Rite_Op<"OP_LOADI"> {
   let summary = "OP_LOADI";
@@ -62,10 +52,25 @@ def LoadIOp : Rite_Op<"OP_LOADI"> {
   }];
 }
 
-// OPCODE(LOADNIL,    B)        /* R(a) = nil */
-def LoadNilOp : Rite_Op<"OP_LOADNIL"> {
-  let summary = "OP_LOADNIL";
-  let arguments = (ins StateType:$mrb);
+// OP_LOADNIL
+def LoadValueNil : I32EnumAttrCase<"nil_value", 1>;
+// OP_LOADSELF
+def LoadValueSelf : I32EnumAttrCase<"self_value", 2>;
+// OP_LOADT
+def LoadValueTrue : I32EnumAttrCase<"true_value", 3>;
+// OP_LOADF
+def LoadValueFalse : I32EnumAttrCase<"false_value", 4>;
+
+def LoadValueKind : I32EnumAttr<
+    "LoadValueKind",
+    "Value kind",
+    [LoadValueNil, LoadValueSelf, LoadValueTrue, LoadValueFalse]> {
+  let cppNamespace = "rite";
+}
+
+def LoadValueOp : Rite_Op<"load_value"> {
+  let summary = "Load value";
+  let arguments = (ins StateType:$mrb, LoadValueKind:$kind);
   let results = (outs ValueType);
   let assemblyFormat = [{
     `(` operands `)` attr-dict `->` type(results)

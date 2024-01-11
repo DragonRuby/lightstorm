@@ -174,6 +174,9 @@ template <typename Op> struct KindOpConversion : public LightstormConversionPatt
   static std::string kindName(rite::ArithKind kind) {
     return "ls_arith_" + rite::stringifyArithKind(kind).str();
   }
+  static std::string kindName(rite::LoadValueKind kind) {
+    return "ls_load_" + rite::stringifyLoadValueKind(kind).str();
+  }
 
   mlir::LogicalResult matchAndRewrite(Op op, llvm::ArrayRef<mlir::Value> operands,
                                       llvm::ArrayRef<mlir::Type> operandTypes,
@@ -245,14 +248,13 @@ void lightstorm::convertRiteToEmitC(mlir::MLIRContext &context, mlir::ModuleOp m
       lightstorm_conversion::ReturnOpConversion,
       lightstorm_conversion::KindOpConversion<rite::BranchPredicateOp>,
       lightstorm_conversion::KindOpConversion<rite::ArithOp>,
-      lightstorm_conversion::KindOpConversion<rite::CmpOp>
+      lightstorm_conversion::KindOpConversion<rite::CmpOp>,
+      lightstorm_conversion::KindOpConversion<rite::LoadValueOp>
 
       ///
       >(loweringContext);
 
-  DirectOpConversion(rite::LoadSelfOp, ls_load_self);
   DirectOpConversion(rite::LoadIOp, ls_load_i);
-  DirectOpConversion(rite::LoadNilOp, ls_load_nil);
 
   mlir::FrozenRewritePatternSet frozenPatterns(std::move(patterns));
   if (mlir::failed(mlir::applyFullConversion(module.getOperation(), target, frozenPatterns))) {

@@ -6,16 +6,21 @@
 // EmitC uses `bool` for conditional branch predicates
 typedef int bool;
 
-LIGHTSTORM_INLINE mrb_value ls_load_self(mrb_state *mrb) {
-  return mrb->c->ci->stack[0];
-}
-
 LIGHTSTORM_INLINE mrb_value ls_load_i(mrb_state *mrb, int64_t i) {
   return mrb_fixnum_value(i);
 }
 
-LIGHTSTORM_INLINE mrb_value ls_load_nil(mrb_state *mrb) {
+LIGHTSTORM_INLINE mrb_value ls_load_nil_value(mrb_state *mrb) {
   return mrb_nil_value();
+}
+LIGHTSTORM_INLINE mrb_value ls_load_self_value(mrb_state *mrb) {
+  return mrb->c->ci->stack[0];
+}
+LIGHTSTORM_INLINE mrb_value ls_load_true_value(mrb_state *mrb) {
+  return mrb_true_value();
+}
+LIGHTSTORM_INLINE mrb_value ls_load_false_value(mrb_state *mrb) {
+  return mrb_false_value();
 }
 
 #define ls_funcall_0(mrb, recv, name, argc) mrb_funcall_id(mrb, recv, name, argc, NULL)
