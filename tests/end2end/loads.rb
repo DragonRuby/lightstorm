@@ -1,0 +1,9 @@
+puts 1
+puts -1
+puts 42
+puts -42
+puts 1_000
+puts -1_000
+puts 1_000_000
+puts -1_000_000
+puts nil
