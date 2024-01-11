@@ -162,6 +162,19 @@ static void createBody(mlir::MLIRContext &context, mrb_state *mrb, mlir::func::F
       store(regs.a, def);
     } break;
 
+    case OP_LOADI32: {
+      // OPCODE(LOADI32,    BSS)      /* R(a) = mrb_int((b<<16)+c) */
+      regs.a = READ_B();
+      regs.b = READ_S();
+      regs.c = READ_S();
+      int64_t val = regs.b;
+      val = (val << 16) + regs.c;
+      auto value =
+          builder.create<mlir::arith::ConstantOp>(location, builder.getI64IntegerAttr(val));
+      auto def = builder.create<rite::LoadIOp>(location, mrb_value_t, state, value);
+      store(regs.a, def);
+    } break;
+
     case OP_LOADNIL: {
       // OPCODE(LOADNIL,   B)        /* R(a) = nil */
       regs.a = READ_B();

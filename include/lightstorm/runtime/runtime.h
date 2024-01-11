@@ -29,7 +29,6 @@ LIGHTSTORM_INLINE mrb_value ls_load_nil(mrb_state *mrb) {
 #define ls_funcall_8(mrb, recv, name, argc, ...) mrb_funcall_id(mrb, recv, name, argc, __VA_ARGS__)
 #define ls_funcall_9(mrb, recv, name, argc, ...) mrb_funcall_id(mrb, recv, name, argc, __VA_ARGS__)
 
-// TODO: Inline all this here or turn on LTO?
 mrb_value ls_compare_gt(mrb_state *mrb, mrb_value lhs, mrb_value rhs);
 mrb_value ls_compare_ge(mrb_state *mrb, mrb_value lhs, mrb_value rhs);
 mrb_value ls_compare_lt(mrb_state *mrb, mrb_value lhs, mrb_value rhs);

@@ -13,3 +13,4 @@ target_include_directories(lightstorm
   ${LLVM_INCLUDE_DIRS}
   ${MLIR_INCLUDE_DIRS}
 )
+add_dependencies(lightstorm mruby_binary)
