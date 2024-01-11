@@ -111,8 +111,6 @@ static void createBody(mlir::MLIRContext &context, mrb_state *mrb, mlir::func::F
 
     addressMapping[pc_offset] = &entryBlock->back();
 
-    auto address = [&]() { return builder.getIndexAttr(pc_offset); };
-
     Regs regs{};
     auto opcode = (mrb_insn)*pc;
     pc++;
@@ -133,7 +131,7 @@ static void createBody(mlir::MLIRContext &context, mrb_state *mrb, mlir::func::F
       // OPCODE(LOADSELF,   B)        /* R(a) = self */
       regs.a = READ_B();
       vreg(regs.a);
-      auto def = builder.create<rite::LoadSelfOp>(location, mrb_value_t, address(), state);
+      auto def = builder.create<rite::LoadSelfOp>(location, mrb_value_t, state);
       store(regs.a, def);
     } break;
 
@@ -150,7 +148,7 @@ static void createBody(mlir::MLIRContext &context, mrb_state *mrb, mlir::func::F
       regs.a = READ_B();
       int64_t i = opcode - OP_LOADI__1 - 1;
       auto value = builder.create<mlir::arith::ConstantOp>(location, builder.getI64IntegerAttr(i));
-      auto def = builder.create<rite::LoadIOp>(location, mrb_value_t, address(), state, value);
+      auto def = builder.create<rite::LoadIOp>(location, mrb_value_t, state, value);
       store(regs.a, def);
     } break;
 
@@ -160,14 +158,14 @@ static void createBody(mlir::MLIRContext &context, mrb_state *mrb, mlir::func::F
       regs.b = READ_B();
       auto value = builder.create<mlir::arith::ConstantOp>(
           location, builder.getI64IntegerAttr(int64_t(regs.b)));
-      auto def = builder.create<rite::LoadIOp>(location, mrb_value_t, address(), state, value);
+      auto def = builder.create<rite::LoadIOp>(location, mrb_value_t, state, value);
       store(regs.a, def);
     } break;
 
     case OP_LOADNIL: {
       // OPCODE(LOADNIL,   B)        /* R(a) = nil */
       regs.a = READ_B();
-      auto def = builder.create<rite::LoadNilOp>(location, mrb_value_t, address(), state);
+      auto def = builder.create<rite::LoadNilOp>(location, mrb_value_t, state);
       store(regs.a, def);
     } break;
 
@@ -196,7 +194,6 @@ static void createBody(mlir::MLIRContext &context, mrb_state *mrb, mlir::func::F
       }
       auto def = builder.create<rite::SendOp>(location,
                                               mrb_value_t,
-                                              address(),
                                               state,
                                               load(regs.a),
                                               symbol(irep->syms[regs.b]),
@@ -209,7 +206,7 @@ static void createBody(mlir::MLIRContext &context, mrb_state *mrb, mlir::func::F
       // OPCODE(RETURN,     B)        /* return R(a) (normal) */
       regs.a = READ_B();
       auto val = load(regs.a);
-      builder.create<rite::ReturnOp>(location, mrb_value_t, address(), state, val);
+      builder.create<rite::ReturnOp>(location, mrb_value_t, state, val);
     } break;
 
 #pragma mark - Comparisons
@@ -217,39 +214,39 @@ static void createBody(mlir::MLIRContext &context, mrb_state *mrb, mlir::func::F
     case OP_GE: {
       // OPCODE(GE,         B)        /* R(a) = R(a)>=R(a+1) */
       regs.a = READ_B();
-      auto def = builder.create<rite::GeOp>(
-          location, mrb_value_t, address(), state, load(regs.a), load(regs.a + 1));
+      auto def =
+          builder.create<rite::GeOp>(location, mrb_value_t, state, load(regs.a), load(regs.a + 1));
       store(regs.a, def);
     } break;
 
     case OP_LT: {
       // OPCODE(LT,         B)        /* R(a) = R(a)<R(a+1) */
       regs.a = READ_B();
-      auto def = builder.create<rite::LtOp>(
-          location, mrb_value_t, address(), state, load(regs.a), load(regs.a + 1));
+      auto def =
+          builder.create<rite::LtOp>(location, mrb_value_t, state, load(regs.a), load(regs.a + 1));
       store(regs.a, def);
     } break;
 
     case OP_LE: {
       // OPCODE(LE,         B)        /* R(a) = R(a)<=R(a+1) */
       regs.a = READ_B();
-      auto def = builder.create<rite::LeOp>(
-          location, mrb_value_t, address(), state, load(regs.a), load(regs.a + 1));
+      auto def =
+          builder.create<rite::LeOp>(location, mrb_value_t, state, load(regs.a), load(regs.a + 1));
       store(regs.a, def);
     } break;
     case OP_EQ: {
       // OPCODE(EQ,         B)        /* R(a) = R(a)==R(a+1) */
       regs.a = READ_B();
-      auto def = builder.create<rite::EqOp>(
-          location, mrb_value_t, address(), state, load(regs.a), load(regs.a + 1));
+      auto def =
+          builder.create<rite::EqOp>(location, mrb_value_t, state, load(regs.a), load(regs.a + 1));
       store(regs.a, def);
     } break;
 
     case OP_GT: {
       // OPCODE(GT,         B)        /* R(a) = R(a)>R(a+1) */
       regs.a = READ_B();
-      auto def = builder.create<rite::GtOp>(
-          location, mrb_value_t, address(), state, load(regs.a), load(regs.a + 1));
+      auto def =
+          builder.create<rite::GtOp>(location, mrb_value_t, state, load(regs.a), load(regs.a + 1));
       store(regs.a, def);
     } break;
 
@@ -313,7 +310,7 @@ static void createBody(mlir::MLIRContext &context, mrb_state *mrb, mlir::func::F
       regs.b = READ_B();
       auto value = builder.create<mlir::arith::ConstantOp>(
           location, builder.getI64IntegerAttr(int64_t(regs.b)));
-      auto rhs = builder.create<rite::LoadIOp>(location, mrb_value_t, address(), state, value);
+      auto rhs = builder.create<rite::LoadIOp>(location, mrb_value_t, state, value);
       auto def = builder.create<rite::ArithOp>(
           location, mrb_value_t, state, load(regs.a), rhs, rite::Arith::add);
       store(regs.a, def);
@@ -333,7 +330,7 @@ static void createBody(mlir::MLIRContext &context, mrb_state *mrb, mlir::func::F
       regs.b = READ_B();
       auto value = builder.create<mlir::arith::ConstantOp>(
           location, builder.getI64IntegerAttr(int64_t(regs.b)));
-      auto rhs = builder.create<rite::LoadIOp>(location, mrb_value_t, address(), state, value);
+      auto rhs = builder.create<rite::LoadIOp>(location, mrb_value_t, state, value);
       auto def = builder.create<rite::ArithOp>(
           location, mrb_value_t, state, load(regs.a), rhs, rite::Arith::sub);
       store(regs.a, def);

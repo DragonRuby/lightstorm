@@ -45,30 +45,30 @@ class Rite_Op<string mnemonic, list<Trait> traits = []> :
 // OPCODE(LOADSELF,   B)        /* R(a) = self */
 def LoadSelfOp : Rite_Op<"OP_LOADSELF"> {
   let summary = "OP_LOADSELF";
-  let arguments = (ins IndexAttr:$address, StateType:$mrb);
+  let arguments = (ins StateType:$mrb);
   let results = (outs ValueType);
   let assemblyFormat = [{
-    `(` operands `)` `{` `address` `=` $address `}` attr-dict `->` type(results)
+    `(` operands `)` attr-dict `->` type(results)
   }];
 }
 
 // OPCODE(LOADI,      BB)       /* R(a) = mrb_int(b) */
 def LoadIOp : Rite_Op<"OP_LOADI"> {
   let summary = "OP_LOADI";
-  let arguments = (ins IndexAttr:$address, StateType:$mrb, I64:$value);
+  let arguments = (ins StateType:$mrb, I64:$value);
   let results = (outs ValueType);
   let assemblyFormat = [{
-    `(` operands `)` `{` `address` `=` $address `}` attr-dict `->` type(results)
+    `(` operands `)` attr-dict `->` type(results)
   }];
 }
 
 // OPCODE(LOADNIL,    B)        /* R(a) = nil */
 def LoadNilOp : Rite_Op<"OP_LOADNIL"> {
   let summary = "OP_LOADNIL";
-  let arguments = (ins IndexAttr:$address, StateType:$mrb);
+  let arguments = (ins StateType:$mrb);
   let results = (outs ValueType);
   let assemblyFormat = [{
-    `(` operands `)` `{` `address` `=` $address `}` attr-dict `->` type(results)
+    `(` operands `)` attr-dict `->` type(results)
   }];
 }
 
@@ -79,50 +79,50 @@ def LoadNilOp : Rite_Op<"OP_LOADNIL"> {
 // OPCODE(EQ,         B)        /* R(a) = R(a)==R(a+1) */
 def EqOp : Rite_Op<"OP_EQ"> {
   let summary = "OP_EQ";
-  let arguments = (ins IndexAttr:$address, StateType:$mrb, ValueType:$lhs, ValueType:$rhs);
+  let arguments = (ins StateType:$mrb, ValueType:$lhs, ValueType:$rhs);
   let results = (outs ValueType);
   let assemblyFormat = [{
-    `(` operands `)` `{` `address` `=` $address `}` attr-dict `->` type(results)
+    `(` operands `)` attr-dict `->` type(results)
   }];
 }
 
 // OPCODE(GT,         B)        /* R(a) = R(a)>R(a+1) */
 def GtOp : Rite_Op<"OP_GT"> {
   let summary = "OP_GT";
-  let arguments = (ins IndexAttr:$address, StateType:$mrb, ValueType:$lhs, ValueType:$rhs);
+  let arguments = (ins StateType:$mrb, ValueType:$lhs, ValueType:$rhs);
   let results = (outs ValueType);
   let assemblyFormat = [{
-    `(` operands `)` `{` `address` `=` $address `}` attr-dict `->` type(results)
+    `(` operands `)` attr-dict `->` type(results)
   }];
 }
 
 // OPCODE(GE,         B)        /* R(a) = R(a)>=R(a+1) */
 def GeOp : Rite_Op<"OP_GE"> {
   let summary = "OP_GE";
-  let arguments = (ins IndexAttr:$address, StateType:$mrb, ValueType:$lhs, ValueType:$rhs);
+  let arguments = (ins StateType:$mrb, ValueType:$lhs, ValueType:$rhs);
   let results = (outs ValueType);
   let assemblyFormat = [{
-    `(` operands `)` `{` `address` `=` $address `}` attr-dict `->` type(results)
+    `(` operands `)` attr-dict `->` type(results)
   }];
 }
 
 // OPCODE(LT,         B)        /* R(a) = R(a)<R(a+1) */
 def LtOp : Rite_Op<"OP_LT"> {
   let summary = "OP_LT";
-  let arguments = (ins IndexAttr:$address, StateType:$mrb, ValueType:$lhs, ValueType:$rhs);
+  let arguments = (ins StateType:$mrb, ValueType:$lhs, ValueType:$rhs);
   let results = (outs ValueType);
   let assemblyFormat = [{
-    `(` operands `)` `{` `address` `=` $address `}` attr-dict `->` type(results)
+    `(` operands `)` attr-dict `->` type(results)
   }];
 }
 
 // OPCODE(LE,         B)        /* R(a) = R(a)<=R(a+1) */
 def LeOp : Rite_Op<"OP_LE"> {
   let summary = "OP_LE";
-  let arguments = (ins IndexAttr:$address, StateType:$mrb, ValueType:$lhs, ValueType:$rhs);
+  let arguments = (ins StateType:$mrb, ValueType:$lhs, ValueType:$rhs);
   let results = (outs ValueType);
   let assemblyFormat = [{
-    `(` operands `)` `{` `address` `=` $address `}` attr-dict `->` type(results)
+    `(` operands `)` attr-dict `->` type(results)
   }];
 }
 
@@ -133,11 +133,11 @@ def LeOp : Rite_Op<"OP_LE"> {
 // OPCODE(SEND,       BBB)      /* R(a) = call(R(a),Syms(b),R(a+1),...,R(a+c)) */
 def SendOp : Rite_Op<"OP_SEND"> {
   let summary = "OP_SEND";
-  let arguments = (ins IndexAttr:$address, StateType:$mrb, ValueType:$receiver, SymAttr:$symbol, I64Attr:$argc, Variadic<ValueType>:$argv);
+  let arguments = (ins StateType:$mrb, ValueType:$receiver, SymAttr:$symbol, I64Attr:$argc, Variadic<ValueType>:$argv);
   let results = (outs ValueType);
   let assemblyFormat = [{
     ``$symbol `(` $mrb `,` $receiver (`,` $argv^)? `)`
-        `{` `address` `=` $address `,` `argc` `=` $argc `}`
+        `{` `argc` `=` $argc `}`
         attr-dict `->` type(results)
   }];
 }
@@ -145,10 +145,10 @@ def SendOp : Rite_Op<"OP_SEND"> {
 // OPCODE(RETURN,     B)        /* return R(a) (normal) */
 def ReturnOp : Rite_Op<"OP_RETURN", [Terminator]> {
   let summary = "OP_RETURN";
-  let arguments = (ins IndexAttr:$address, StateType:$mrb, ValueType:$src);
+  let arguments = (ins StateType:$mrb, ValueType:$src);
   let results = (outs ValueType);
   let assemblyFormat = [{
-    `(` operands `)` `{` `address` `=` $address `}` attr-dict `->` type(results)
+    `(` operands `)` attr-dict `->` type(results)
   }];
 }
 
