@@ -122,6 +122,13 @@ static void createBody(mlir::MLIRContext &context, mrb_state *mrb, mlir::func::F
       // NOOP
       break;
 
+    case OP_MOVE: {
+      // OPCODE(MOVE,       BB)       /* R(a) = R(b) */
+      regs.a = READ_B();
+      regs.b = READ_B();
+      store(regs.a, load(regs.b));
+    } break;
+
     case OP_LOADSELF: {
       // OPCODE(LOADSELF,   B)        /* R(a) = self */
       regs.a = READ_B();
@@ -298,6 +305,64 @@ static void createBody(mlir::MLIRContext &context, mrb_state *mrb, mlir::func::F
       jumpTargets[pred] = { target, next_address };
     } break;
 
+#pragma mark - Arithmetic
+
+    case OP_ADDI: {
+      // OPCODE(ADDI,       BB)       /* R(a) = R(a)+mrb_int(b) */
+      regs.a = READ_B();
+      regs.b = READ_B();
+      auto value = builder.create<mlir::arith::ConstantOp>(
+          location, builder.getI64IntegerAttr(int64_t(regs.b)));
+      auto rhs = builder.create<rite::LoadIOp>(location, mrb_value_t, address(), state, value);
+      auto def = builder.create<rite::ArithOp>(
+          location, mrb_value_t, state, load(regs.a), rhs, rite::Arith::add);
+      store(regs.a, def);
+    } break;
+
+    case OP_ADD: {
+      // OPCODE(ADD,       B)       /* R(a) = R(a)+R(a+1) */
+      regs.a = READ_B();
+      auto def = builder.create<rite::ArithOp>(
+          location, mrb_value_t, state, load(regs.a), load(regs.a + 1), rite::Arith::add);
+      store(regs.a, def);
+    } break;
+
+    case OP_SUBI: {
+      // OPCODE(SUBI,       BB)       /* R(a) = R(a)-mrb_int(b) */
+      regs.a = READ_B();
+      regs.b = READ_B();
+      auto value = builder.create<mlir::arith::ConstantOp>(
+          location, builder.getI64IntegerAttr(int64_t(regs.b)));
+      auto rhs = builder.create<rite::LoadIOp>(location, mrb_value_t, address(), state, value);
+      auto def = builder.create<rite::ArithOp>(
+          location, mrb_value_t, state, load(regs.a), rhs, rite::Arith::sub);
+      store(regs.a, def);
+    } break;
+
+    case OP_SUB: {
+      // OPCODE(SUB,       B)       /* R(a) = R(a)-R(a+1) */
+      regs.a = READ_B();
+      auto def = builder.create<rite::ArithOp>(
+          location, mrb_value_t, state, load(regs.a), load(regs.a + 1), rite::Arith::sub);
+      store(regs.a, def);
+    } break;
+
+    case OP_MUL: {
+      // OPCODE(MUL,       B)       /* R(a) = R(a)*R(a+1) */
+      regs.a = READ_B();
+      auto def = builder.create<rite::ArithOp>(
+          location, mrb_value_t, state, load(regs.a), load(regs.a + 1), rite::Arith::mul);
+      store(regs.a, def);
+    } break;
+
+    case OP_DIV: {
+      // OPCODE(DIV,       B)       /* R(a) = R(a)/R(a+1) */
+      regs.a = READ_B();
+      auto def = builder.create<rite::ArithOp>(
+          location, mrb_value_t, state, load(regs.a), load(regs.a + 1), rite::Arith::div);
+      store(regs.a, def);
+    } break;
+
     default: {
       using namespace std::string_literals;
       auto msg = "Hit unsupported op: "s + fs_opcode_name(opcode);
@@ -307,6 +372,10 @@ static void createBody(mlir::MLIRContext &context, mrb_state *mrb, mlir::func::F
 
     pc_offset += pc - pc_base - 1;
   }
+
+  ///
+  /// CFG construction
+  ///
 
   for (auto &[address, op] : addressMapping) {
     addressMapping[address] = op->getNextNode();

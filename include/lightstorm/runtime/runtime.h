@@ -46,4 +46,9 @@ LIGHTSTORM_INLINE int ls_value_nil(mrb_value value) {
   return mrb_nil_p(value);
 }
 
+mrb_value ls_arith_add(mrb_state *mrb, mrb_value lhs, mrb_value rhs);
+mrb_value ls_arith_sub(mrb_state *mrb, mrb_value lhs, mrb_value rhs);
+mrb_value ls_arith_mul(mrb_state *mrb, mrb_value lhs, mrb_value rhs);
+mrb_value ls_arith_div(mrb_state *mrb, mrb_value lhs, mrb_value rhs);
+
 mrb_value lightstorm_top(mrb_state *mrb, mrb_value self);

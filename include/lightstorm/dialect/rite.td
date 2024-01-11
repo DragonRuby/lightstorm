@@ -205,3 +205,32 @@ def BranchPredicateOp : Rite_Op<"branch_predicate"> {
   let arguments = (ins ValueType:$value, BranchPredicate:$predicate);
   let results = (outs I1);
 }
+
+///
+/// Arithmetic
+///
+
+// OP_ADD
+def ArithAdd : I32EnumAttrCase<"add", 1>;
+// OP_SUB
+def ArithSub : I32EnumAttrCase<"sub", 2>;
+// OP_MUL
+def ArithMul : I32EnumAttrCase<"mul", 3>;
+// OP_DIV
+def ArithDiv : I32EnumAttrCase<"div", 4>;
+
+def Arith : I32EnumAttr<
+    "Arith",
+    "Arithmetic operation",
+    [ArithAdd, ArithSub, ArithMul, ArithDiv]> {
+  let cppNamespace = "rite";
+}
+
+def ArithOp : Rite_Op<"arith"> {
+  let summary = "arith";
+  let arguments = (ins StateType:$mrb, ValueType:$lhs, ValueType:$rhs, Arith:$kind);
+  let results = (outs ValueType);
+  let assemblyFormat = [{
+    `(` operands `)` attr-dict `->` type(results)
+  }];
+}

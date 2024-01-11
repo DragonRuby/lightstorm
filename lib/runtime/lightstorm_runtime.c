@@ -1,6 +1,11 @@
 #include "lightstorm/runtime/runtime.h"
+#include <mruby/error.h>
+#include <mruby/numeric.h>
 #include <mruby/presym.h>
 #include <mruby/proc.h>
+#include <mruby/string.h>
+
+void mrb_exc_set(mrb_state *mrb, mrb_value exc);
 
 int main() {
   mrb_state *mrb = mrb_open();
@@ -13,6 +18,8 @@ int main() {
   mrb_close(mrb);
   return 0;
 }
+
+#pragma mark - Comparisons
 
 #define TYPES2(a, b) ((((uint16_t)(a)) << 8) | (((uint16_t)(b)) & 0xff))
 
@@ -62,3 +69,101 @@ LIGHTSTORM_INLINE mrb_value ls_compare_eq(mrb_state *mrb, mrb_value lhs, mrb_val
 }
 
 #undef FS_COMPARE
+
+#pragma mark - Arithmetic
+
+#define OP_MATH(op_name, lhs, rhs)                                                                 \
+  /* need to check if op is overridden */                                                          \
+  switch (TYPES2(mrb_type(lhs), mrb_type(rhs))) {                                                  \
+    OP_MATH_CASE_INTEGER(op_name);                                                                 \
+    OP_MATH_CASE_FLOAT(op_name, integer, float);                                                   \
+    OP_MATH_CASE_FLOAT(op_name, float, integer);                                                   \
+    OP_MATH_CASE_FLOAT(op_name, float, float);                                                     \
+    OP_MATH_CASE_STRING_##op_name();                                                               \
+  default: {                                                                                       \
+    mrb_sym mid = MRB_OPSYM(op_name);                                                              \
+    mrb_value ret = mrb_funcall_id(mrb, lhs, mid, 1, &rhs);                                        \
+    return ret;                                                                                    \
+  }                                                                                                \
+  }
+
+#define OP_MATH_CASE_INTEGER(op_name)                                                              \
+  case TYPES2(MRB_TT_INTEGER, MRB_TT_INTEGER): {                                                   \
+    mrb_int x = mrb_integer(lhs), y = mrb_integer(rhs), z;                                         \
+    if (mrb_int_##op_name##_overflow(x, y, &z)) {                                                  \
+      OP_MATH_OVERFLOW_INT();                                                                      \
+    } else {                                                                                       \
+      return mrb_fixnum_value(z);                                                                  \
+    }                                                                                              \
+  }
+#define OP_MATH_CASE_FLOAT(op_name, t1, t2)                                                        \
+  case TYPES2(OP_MATH_TT_##t1, OP_MATH_TT_##t2): {                                                 \
+    mrb_float z = mrb_##t1(lhs) OP_MATH_OP_##op_name mrb_##t2(rhs);                                \
+    return mrb_float_value(mrb, z);                                                                \
+  }
+
+#define OP_MATH_OVERFLOW_INT()                                                                     \
+  {                                                                                                \
+    mrb_value exc = mrb_exc_new_lit(mrb, E_RANGE_ERROR, "integer overflow");                       \
+    mrb_exc_set(mrb, exc);                                                                         \
+    mrb_exc_raise(mrb, mrb_obj_value(mrb->exc));                                                   \
+    return mrb_nil_value();                                                                        \
+  }
+
+#define OP_MATH_CASE_STRING_add()                                                                  \
+  case TYPES2(MRB_TT_STRING, MRB_TT_STRING): {                                                     \
+    return mrb_str_plus(mrb, lhs, rhs);                                                            \
+  }
+#define OP_MATH_CASE_STRING_sub() (void)0
+#define OP_MATH_CASE_STRING_mul() (void)0
+#define OP_MATH_OP_add +
+#define OP_MATH_OP_sub -
+#define OP_MATH_OP_mul *
+#define OP_MATH_TT_integer MRB_TT_INTEGER
+#define OP_MATH_TT_float MRB_TT_FLOAT
+
+LIGHTSTORM_INLINE mrb_value ls_arith_add(mrb_state *mrb, mrb_value lhs, mrb_value rhs) {
+  OP_MATH(add, lhs, rhs);
+}
+
+LIGHTSTORM_INLINE mrb_value ls_arith_sub(mrb_state *mrb, mrb_value lhs, mrb_value rhs) {
+  OP_MATH(sub, lhs, rhs);
+}
+
+LIGHTSTORM_INLINE mrb_value ls_arith_mul(mrb_state *mrb, mrb_value lhs, mrb_value rhs) {
+  OP_MATH(mul, lhs, rhs);
+}
+
+LIGHTSTORM_INLINE mrb_value ls_arith_div(mrb_state *mrb, mrb_value lhs, mrb_value rhs) {
+  mrb_int mrb_num_div_int(mrb_state * mrb, mrb_int x, mrb_int y);
+  mrb_float mrb_num_div_flo(mrb_state * mrb, mrb_float x, mrb_float y);
+  mrb_float x, y, f;
+  switch (TYPES2(mrb_type(lhs), mrb_type(rhs))) {
+  case TYPES2(MRB_TT_INTEGER, MRB_TT_INTEGER): {
+    mrb_int xi = mrb_integer(lhs);
+    mrb_int yi = mrb_integer(rhs);
+    mrb_int div = mrb_num_div_int(mrb, xi, yi);
+    return mrb_int_value(mrb, div);
+  } break;
+  case TYPES2(MRB_TT_INTEGER, MRB_TT_FLOAT):
+    x = (mrb_float)mrb_integer(lhs);
+    y = mrb_float(rhs);
+    break;
+  case TYPES2(MRB_TT_FLOAT, MRB_TT_INTEGER):
+    x = mrb_float(lhs);
+    y = (mrb_float)mrb_integer(rhs);
+    break;
+  case TYPES2(MRB_TT_FLOAT, MRB_TT_FLOAT):
+    x = mrb_float(lhs);
+    y = mrb_float(rhs);
+    break;
+  default: {
+    mrb_sym mid = MRB_OPSYM(div);
+    mrb_value ret = mrb_funcall_id(mrb, lhs, mid, 1, &rhs);
+    return ret;
+  }
+  }
+
+  f = mrb_num_div_flo(mrb, x, y);
+  return mrb_float_value(mrb, f);
+}

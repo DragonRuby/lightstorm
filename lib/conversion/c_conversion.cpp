@@ -211,6 +211,34 @@ struct BranchPredicateOpConversion : public LightstormConversionPattern<rite::Br
   }
 };
 
+struct ArithOpConversion : public LightstormConversionPattern<rite::ArithOp> {
+  explicit ArithOpConversion(LightstormConversionContext &conversionContext)
+      : LightstormConversionPattern(conversionContext) {}
+
+  static std::string kindName(rite::Arith kind) {
+    switch (kind) {
+    case rite::Arith::add:
+      return "ls_arith_add";
+    case rite::Arith::sub:
+      return "ls_arith_sub";
+    case rite::Arith::mul:
+      return "ls_arith_mul";
+    case rite::Arith::div:
+      return "ls_arith_div";
+    }
+  }
+
+  mlir::LogicalResult matchAndRewrite(rite::ArithOp op, llvm::ArrayRef<mlir::Value> operands,
+                                      llvm::ArrayRef<mlir::Type> operandTypes,
+                                      mlir::Type resultType,
+                                      mlir::ConversionPatternRewriter &rewriter) const final {
+    auto func = lookupOrCreateFn(op, kindName(op.getKind()), operandTypes, resultType);
+    auto newOp = rewriter.create<mlir::func::CallOp>(op->getLoc(), func, operands);
+    rewriter.replaceOp(op, newOp.getResult(0));
+    return mlir::success();
+  }
+};
+
 } // namespace lightstorm_conversion
 
 #define DirectOpConversion(Op, function)                                                           \
@@ -268,7 +296,8 @@ void lightstorm::convertRiteToEmitC(mlir::MLIRContext &context, mlir::ModuleOp m
       lightstorm_conversion::BlockArgumentTypeConversion,
       lightstorm_conversion::SendOpConversion,
       lightstorm_conversion::ReturnOpConversion,
-      lightstorm_conversion::BranchPredicateOpConversion
+      lightstorm_conversion::BranchPredicateOpConversion,
+      lightstorm_conversion::ArithOpConversion
 
       ///
       >(loweringContext);
