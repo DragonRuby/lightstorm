@@ -8,3 +8,4 @@ target_include_directories(lightstorm_runtime
   ${CMAKE_SOURCE_DIR}/third_party/mruby/build/host/include
 )
 target_compile_options(lightstorm_runtime PRIVATE -flto)
+add_dependencies(lightstorm_runtime mruby_static)

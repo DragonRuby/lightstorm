@@ -18,3 +18,4 @@ target_link_libraries(lightstorm_compiler
   MLIRTransforms
 )
 target_compile_options(lightstorm_compiler PRIVATE -fno-rtti -fno-exceptions)
+add_dependencies(lightstorm_compiler mruby_static)
