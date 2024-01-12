@@ -61,6 +61,16 @@ def LoadIOp : Rite_Op<"OP_LOADI"> {
   }];
 }
 
+// OPCODE(LOADSYM,    BB)       /* R(a) = Syms(b) */
+def LoadSymOp : Rite_Op<"OP_LOADSYM"> {
+  let summary = "OP_LOADSYM";
+  let arguments = (ins StateType:$mrb, UI32:$mid);
+  let results = (outs ValueType);
+  let assemblyFormat = [{
+    `(` operands `)` attr-dict `->` type(results)
+  }];
+}
+
 // OP_LOADNIL
 def LoadValueNil : I32EnumAttrCase<"nil_value", 1>;
 // OP_LOADSELF

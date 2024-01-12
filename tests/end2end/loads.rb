@@ -12,4 +12,4 @@ puts nil
 puts true
 puts false
 puts self
-#puts :hello
+puts :hello

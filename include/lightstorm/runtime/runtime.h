@@ -58,6 +58,9 @@ mrb_value ls_arith_div(mrb_state *mrb, mrb_value lhs, mrb_value rhs);
 LIGHTSTORM_INLINE mrb_value ls_load_local_variable(mrb_state *mrb, int64_t idx) {
   return mrb->c->ci->stack[idx];
 }
+LIGHTSTORM_INLINE mrb_value ls_load_sym(mrb_state *mrb, mrb_sym sym) {
+  return mrb_symbol_value(sym);
+}
 
 mrb_value ls_load_target_class_value(mrb_state *mrb);
 mrb_value ls_create_method(mrb_state *mrb, mrb_func_t func);

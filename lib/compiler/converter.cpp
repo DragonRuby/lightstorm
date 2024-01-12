@@ -218,6 +218,16 @@ static void createBody(mlir::MLIRContext &context, mrb_state *mrb, mlir::func::F
       store(regs.a, def);
     } break;
 
+    case OP_LOADSYM: {
+      // OPCODE(LOADSYM,    BB)       /* R(a) = Syms(b) */
+      regs.a = READ_B();
+      regs.b = READ_B();
+      auto sym = builder.create<rite::InternSymOp>(
+          location, builder.getUI32IntegerAttr(0).getType(), state, symbol(irep->syms[regs.b]));
+      auto def = builder.create<rite::LoadSymOp>(location, mrb_value_t, state, sym);
+      store(regs.a, def);
+    } break;
+
     case OP_SEND: {
       // OPCODE(SEND,       BBB)      /* R(a) = call(R(a),Syms(b),R(a+1),...,R(a+c)) */
       regs.a = READ_B();

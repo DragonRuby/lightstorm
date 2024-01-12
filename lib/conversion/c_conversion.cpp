@@ -274,6 +274,7 @@ void lightstorm::convertRiteToEmitC(mlir::MLIRContext &context, mlir::ModuleOp m
       >(loweringContext);
 
   DirectOpConversion(rite::LoadIOp, ls_load_i);
+  DirectOpConversion(rite::LoadSymOp, ls_load_sym);
   DirectOpConversion(rite::LoadLocalVariableOp, ls_load_local_variable);
   DirectOpConversion(rite::DefOp, ls_define_method);
 
