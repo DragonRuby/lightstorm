@@ -8,7 +8,7 @@ function(add_end2end_test ruby)
   )
   add_executable(${target_name} ${out_c})
   target_compile_options(${target_name} PRIVATE -flto -O3)
-  target_link_libraries(${target_name} PRIVATE mruby_static lightstorm_runtime)
+  target_link_libraries(${target_name} PRIVATE mruby_static lightstorm_runtime lightstorm_runtime_main)
   add_dependencies(${target_name} mruby_static)
 endfunction()
 

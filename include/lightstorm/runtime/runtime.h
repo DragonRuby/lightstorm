@@ -55,8 +55,6 @@ mrb_value ls_arith_sub(mrb_state *mrb, mrb_value lhs, mrb_value rhs);
 mrb_value ls_arith_mul(mrb_state *mrb, mrb_value lhs, mrb_value rhs);
 mrb_value ls_arith_div(mrb_state *mrb, mrb_value lhs, mrb_value rhs);
 
-mrb_value lightstorm_top(mrb_state *mrb, mrb_value self);
-
 LIGHTSTORM_INLINE mrb_value ls_load_local_variable(mrb_state *mrb, int64_t idx) {
   return mrb->c->ci->stack[idx];
 }
