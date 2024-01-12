@@ -42,6 +42,15 @@ class Rite_Op<string mnemonic, list<Trait> traits = []> :
 // Loads
 //
 
+def LoadLocalVariableOp : Rite_Op<"local_variable"> {
+  let summary = "Load local variable from the virtual stack";
+  let arguments = (ins StateType:$mrb, Index:$regnum);
+  let results = (outs ValueType);
+  let assemblyFormat = [{
+    `(` operands `)` attr-dict `->` type(results)
+  }];
+}
+
 // OPCODE(LOADI,      BB)       /* R(a) = mrb_int(b) */
 def LoadIOp : Rite_Op<"OP_LOADI"> {
   let summary = "OP_LOADI";
@@ -60,11 +69,18 @@ def LoadValueSelf : I32EnumAttrCase<"self_value", 2>;
 def LoadValueTrue : I32EnumAttrCase<"true_value", 3>;
 // OP_LOADF
 def LoadValueFalse : I32EnumAttrCase<"false_value", 4>;
+// OP_TCLASS
+def LoadValueTargetClass : I32EnumAttrCase<"target_class_value", 5>;
 
 def LoadValueKind : I32EnumAttr<
     "LoadValueKind",
     "Value kind",
-    [LoadValueNil, LoadValueSelf, LoadValueTrue, LoadValueFalse]> {
+    [LoadValueNil,
+     LoadValueSelf,
+     LoadValueTrue,
+     LoadValueFalse,
+     LoadValueTargetClass
+    ]> {
   let cppNamespace = "rite";
 }
 
@@ -73,7 +89,7 @@ def LoadValueOp : Rite_Op<"load_value"> {
   let arguments = (ins StateType:$mrb, LoadValueKind:$kind);
   let results = (outs ValueType);
   let assemblyFormat = [{
-    `(` operands `)` attr-dict `->` type(results)
+    `[` $kind `]` `(` operands `)` attr-dict `->` type(results)
   }];
 }
 
@@ -112,15 +128,42 @@ def CmpOp : Rite_Op<"cmp"> {
 // Calls
 //
 
+def InternSymOp : Rite_Op<"intern_symbol"> {
+  let summary = "Converts string symbol into a numerical value";
+  let arguments = (ins StateType:$mrb, SymAttr:$mid);
+  let results = (outs UI32);
+  let assemblyFormat = [{
+    `(` $mrb `,` $mid `)` attr-dict `->` type(results)
+  }];
+}
+
+// OPCODE(METHOD,     BB)       /* R(a) = lambda(SEQ[b],L_METHOD) */
+def MethodOp : Rite_Op<"OP_METHOD"> {
+  let summary = "OP_METHOD";
+  let arguments = (ins StateType:$mrb, FlatSymbolRefAttr:$method);
+  let results = (outs ValueType);
+  let assemblyFormat = [{
+    `(` $mrb `,` $method `)` attr-dict
+  }];
+}
+
+// OPCODE(DEF,        BB)       /* R(a).newmethod(Syms(b),R(a+1)) */
+def DefOp : Rite_Op<"OP_DEF"> {
+  let summary = "OP_DEF";
+  let arguments = (ins StateType:$mrb, ValueType:$target, ValueType:$method, UI32:$mid);
+  let results = (outs ValueType);
+  let assemblyFormat = [{
+    `(` operands `)` attr-dict
+  }];
+}
+
 // OPCODE(SEND,       BBB)      /* R(a) = call(R(a),Syms(b),R(a+1),...,R(a+c)) */
 def SendOp : Rite_Op<"OP_SEND"> {
   let summary = "OP_SEND";
-  let arguments = (ins StateType:$mrb, ValueType:$receiver, SymAttr:$symbol, I64Attr:$argc, Variadic<ValueType>:$argv);
+  let arguments = (ins StateType:$mrb, ValueType:$receiver, UI32:$symbol, I64:$argc, Variadic<ValueType>:$argv);
   let results = (outs ValueType);
   let assemblyFormat = [{
-    ``$symbol `(` $mrb `,` $receiver (`,` $argv^)? `)`
-        `{` `argc` `=` $argc `}`
-        attr-dict `->` type(results)
+    `(` operands `,` type($argv) `)` attr-dict `->` type(results)
   }];
 }
 

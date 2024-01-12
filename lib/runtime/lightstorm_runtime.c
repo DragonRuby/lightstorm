@@ -1,4 +1,6 @@
 #include "lightstorm/runtime/runtime.h"
+#include <assert.h>
+#include <mruby/class.h>
 #include <mruby/error.h>
 #include <mruby/numeric.h>
 #include <mruby/presym.h>
@@ -166,4 +168,29 @@ LIGHTSTORM_INLINE mrb_value ls_arith_div(mrb_state *mrb, mrb_value lhs, mrb_valu
 
   f = mrb_num_div_flo(mrb, x, y);
   return mrb_float_value(mrb, f);
+}
+
+LIGHTSTORM_INLINE mrb_value ls_load_target_class_value(mrb_state *mrb) {
+  struct RClass *targetClass = mrb_vm_ci_target_class(mrb->c->ci);
+  if (!targetClass) {
+    mrb_value exc = mrb_exc_new_lit(mrb, E_TYPE_ERROR, "no target class or module");
+    mrb_exc_raise(mrb, exc);
+  }
+  return mrb_obj_value(targetClass);
+}
+
+LIGHTSTORM_INLINE mrb_value ls_create_method(mrb_state *mrb, mrb_func_t func) {
+  return mrb_obj_value(mrb_proc_new_cfunc(mrb, func));
+}
+
+LIGHTSTORM_INLINE mrb_value ls_define_method(mrb_state *mrb, mrb_value target, mrb_value method,
+                                             mrb_sym mid) {
+  struct RClass *targetClass = mrb_class_ptr(target);
+  assert(targetClass->tt == MRB_TT_CLASS || targetClass->tt == MRB_TT_MODULE ||
+         targetClass->tt == MRB_TT_SCLASS);
+  struct RProc *proc = mrb_proc_ptr(method);
+  mrb_method_t m;
+  MRB_METHOD_FROM_PROC(m, proc);
+  mrb_define_method_raw(mrb, targetClass, mid, m);
+  return mrb_nil_value();
 }

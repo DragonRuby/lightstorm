@@ -89,6 +89,36 @@ template <typename Op> struct DirectOpConversion : public LightstormConversionPa
   std::string name;
 };
 
+struct InternSymOpConversion : public LightstormConversionPattern<rite::InternSymOp> {
+  explicit InternSymOpConversion(LightstormConversionContext &conversionContext)
+      : LightstormConversionPattern(conversionContext) {}
+
+  mlir::LogicalResult matchAndRewrite(rite::InternSymOp op, llvm::ArrayRef<mlir::Value> operands,
+                                      llvm::ArrayRef<mlir::Type> operandTypes,
+                                      mlir::Type resultType,
+                                      mlir::ConversionPatternRewriter &rewriter) const final {
+    auto charType = mlir::emitc::OpaqueType::get(getContext(), "const char");
+    auto charPtrType = mlir::emitc::PointerType::get(charType);
+    mlir::TypeRange mrbInternTypes{
+      // MRB_API mrb_sym mrb_intern(mrb_state* mrb, const char* s, size_t size);
+      operandTypes[0],      // mrb
+      charPtrType,          // s
+      rewriter.getI64Type() // size
+    };
+    auto quotedSymName = '"' + op.getMidAttr().getSymname() + '"';
+    auto symAttr = mlir::emitc::OpaqueAttr::get(getContext(), quotedSymName);
+    auto symName = rewriter.create<mlir::emitc::ConstantOp>(op->getLoc(), charPtrType, symAttr);
+    auto sizeAttr = rewriter.getI64IntegerAttr(op.getMidAttr().getSymname().size());
+    auto size =
+        rewriter.create<mlir::emitc::ConstantOp>(op->getLoc(), sizeAttr.getType(), sizeAttr);
+    mlir::ValueRange mrbInternOperands{ operands[0], symName, size };
+    auto mrbIntern = lookupOrCreateFn(op, "mrb_intern", mrbInternTypes, resultType);
+    auto mrbSym = rewriter.create<mlir::func::CallOp>(op->getLoc(), mrbIntern, mrbInternOperands);
+    rewriter.replaceOp(op, mrbSym.getResult(0));
+    return mlir::success();
+  }
+};
+
 struct SendOpConversion : public LightstormConversionPattern<rite::SendOp> {
   explicit SendOpConversion(LightstormConversionContext &conversionContext)
       : LightstormConversionPattern(conversionContext) {}
@@ -97,45 +127,32 @@ struct SendOpConversion : public LightstormConversionPattern<rite::SendOp> {
                                       llvm::ArrayRef<mlir::Type> operandTypes,
                                       mlir::Type resultType,
                                       mlir::ConversionPatternRewriter &rewriter) const final {
-    auto mrbValueType = operandTypes[1]; // receiver
-    auto charType = mlir::emitc::OpaqueType::get(getContext(), "const char");
-    auto symType = mlir::emitc::OpaqueType::get(getContext(), "mrb_sym");
-    auto charPtrType = mlir::emitc::PointerType::get(charType);
-    mlir::TypeRange mrbInternTypes{
-      // MRB_API mrb_sym mrb_intern(mrb_state* mrb, const char* s, size_t size);
-      operandTypes[0],      // mrb
-      charPtrType,          // s
-      rewriter.getI64Type() // size
-    };
-    auto quotedSymName = '"' + op.getSymbolAttr().getSymname() + '"';
-    auto symAttr = mlir::emitc::OpaqueAttr::get(getContext(), quotedSymName);
-    auto symName = rewriter.create<mlir::emitc::ConstantOp>(op->getLoc(), charPtrType, symAttr);
-    auto sizeAttr = rewriter.getI64IntegerAttr(op.getSymbolAttr().getSymname().size());
-    auto size =
-        rewriter.create<mlir::emitc::ConstantOp>(op->getLoc(), sizeAttr.getType(), sizeAttr);
-    mlir::ValueRange mrbInternOperands{ operands[0], symName, size };
-    auto mrbIntern = lookupOrCreateFn(op, "mrb_intern", mrbInternTypes, symType);
-    auto mrbSym = rewriter.create<mlir::func::CallOp>(op->getLoc(), mrbIntern, mrbInternOperands);
-    std::vector<mlir::Type> newOperandTypes{
-      // mimics vararg function
-      // ls_funcall_X(mrb_state *mrb, mrb_value recv, mrb_sym name, mrb_int argc, mrb_value i..X);
-      operandTypes[0],       // mrb
-      operandTypes[1],       // receiver
-      symType,               // name
-      rewriter.getI64Type(), // argc
-    };
-    for (int i = 0; i < op.getArgv().size(); i++) {
-      newOperandTypes.push_back(mrbValueType);
-    }
+
     auto func = lookupOrCreateFn(
-        op, "ls_funcall_" + std::to_string(op.getArgv().size()), newOperandTypes, resultType);
-    auto argc = rewriter.create<mlir::emitc::ConstantOp>(
-        op->getLoc(), op.getArgcAttr().getType(), op.getArgcAttr());
-    std::vector<mlir::Value> newOperands{ operands[0], operands[1], mrbSym.getResult(0), argc };
-    for (int i = 0; i < op.getArgv().size(); i++) {
-      newOperands.push_back(operands[i + 2]);
-    }
-    auto newOp = rewriter.create<mlir::func::CallOp>(op->getLoc(), func, newOperands);
+        op, "ls_funcall_" + std::to_string(op.getArgv().size()), operandTypes, resultType);
+    auto newOp = rewriter.create<mlir::func::CallOp>(op->getLoc(), func, operands);
+    rewriter.replaceOp(op, newOp.getResult(0));
+    return mlir::success();
+  }
+};
+
+struct MethodOpConversion : public LightstormConversionPattern<rite::MethodOp> {
+  explicit MethodOpConversion(LightstormConversionContext &conversionContext)
+      : LightstormConversionPattern(conversionContext) {}
+
+  mlir::LogicalResult matchAndRewrite(rite::MethodOp op, llvm::ArrayRef<mlir::Value> operands,
+                                      llvm::ArrayRef<mlir::Type> operandTypes,
+                                      mlir::Type resultType,
+                                      mlir::ConversionPatternRewriter &rewriter) const final {
+    auto mrb_func_t = mlir::emitc::OpaqueType::get(getContext(), "mrb_func_t");
+    auto ref = rewriter.create<mlir::emitc::ConstantOp>(
+        op->getLoc(),
+        mrb_func_t,
+        mlir::emitc::OpaqueAttr::get(getContext(), op.getMethodAttr().getAttr()));
+    auto func =
+        lookupOrCreateFn(op, "ls_create_method", { operandTypes.front(), mrb_func_t }, resultType);
+    auto newOp = rewriter.create<mlir::func::CallOp>(
+        op->getLoc(), func, mlir::ValueRange{ operands.front(), ref });
     rewriter.replaceOp(op, newOp.getResult(0));
     return mlir::success();
   }
@@ -244,7 +261,9 @@ void lightstorm::convertRiteToEmitC(mlir::MLIRContext &context, mlir::ModuleOp m
   mlir::populateBranchOpInterfaceTypeConversionPattern(patterns, typeConverter);
   patterns.add<
       ///
+      lightstorm_conversion::InternSymOpConversion,
       lightstorm_conversion::SendOpConversion,
+      lightstorm_conversion::MethodOpConversion,
       lightstorm_conversion::ReturnOpConversion,
       lightstorm_conversion::KindOpConversion<rite::BranchPredicateOp>,
       lightstorm_conversion::KindOpConversion<rite::ArithOp>,
@@ -255,6 +274,8 @@ void lightstorm::convertRiteToEmitC(mlir::MLIRContext &context, mlir::ModuleOp m
       >(loweringContext);
 
   DirectOpConversion(rite::LoadIOp, ls_load_i);
+  DirectOpConversion(rite::LoadLocalVariableOp, ls_load_local_variable);
+  DirectOpConversion(rite::DefOp, ls_define_method);
 
   mlir::FrozenRewritePatternSet frozenPatterns(std::move(patterns));
   if (mlir::failed(mlir::applyFullConversion(module.getOperation(), target, frozenPatterns))) {

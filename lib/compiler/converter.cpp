@@ -57,7 +57,8 @@ static void populatePrototypes(mlir::MLIRContext &context,
 }
 
 static void createBody(mlir::MLIRContext &context, mrb_state *mrb, mlir::func::FuncOp func,
-                       const mrb_irep *irep) {
+                       const mrb_irep *irep,
+                       const std::unordered_map<const mrb_irep *, mlir::func::FuncOp> &functions) {
   const char *filename = mrb_debug_get_filename(mrb, irep, 0);
   auto line = mrb_debug_get_line(mrb, irep, 0);
   mlir::Type mrb_value_t(rite::mrb_valueType::get(&context));
@@ -93,6 +94,13 @@ static void createBody(mlir::MLIRContext &context, mrb_state *mrb, mlir::func::F
     auto r = vreg(reg);
     return builder.create<rite::LoadOp>(functionLocation, mrb_value_t, r);
   };
+
+  for (int i = 0; i < irep->nlocals - 1; i++) {
+    auto index = builder.create<mlir::arith::ConstantIndexOp>(functionLocation, i + 1);
+    auto def =
+        builder.create<rite::LoadLocalVariableOp>(functionLocation, mrb_value_t, state, index);
+    store(i + 1, def);
+  }
 
   // Potential jump targets
   std::unordered_map<int64_t, mlir::Operation *> addressMapping;
@@ -202,6 +210,14 @@ static void createBody(mlir::MLIRContext &context, mrb_state *mrb, mlir::func::F
       store(regs.a, def);
     } break;
 
+    case OP_TCLASS: {
+      // OPCODE(TCLASS,     B)        /* R(a) = target_class */
+      regs.a = READ_B();
+      auto def = builder.create<rite::LoadValueOp>(
+          location, mrb_value_t, state, rite::LoadValueKind::target_class_value);
+      store(regs.a, def);
+    } break;
+
     case OP_SEND: {
       // OPCODE(SEND,       BBB)      /* R(a) = call(R(a),Syms(b),R(a+1),...,R(a+c)) */
       regs.a = READ_B();
@@ -225,14 +241,19 @@ static void createBody(mlir::MLIRContext &context, mrb_state *mrb, mlir::func::F
         // actual argv packed in an array
         usesAttr.push_back(regs.a + 1);
       }
-      auto def = builder.create<rite::SendOp>(location,
-                                              mrb_value_t,
-                                              state,
-                                              load(regs.a),
-                                              symbol(irep->syms[regs.b]),
-                                              builder.getI64IntegerAttr(regs.c),
-                                              argv);
+      auto mid = builder.create<rite::InternSymOp>(
+          location, builder.getUI32IntegerAttr(0).getType(), state, symbol(irep->syms[regs.b]));
+      auto argc =
+          builder.create<mlir::arith::ConstantOp>(location, builder.getI64IntegerAttr(regs.c));
+      auto def =
+          builder.create<rite::SendOp>(location, mrb_value_t, state, load(regs.a), mid, argc, argv);
       store(regs.a, def);
+    } break;
+
+    case OP_ENTER: {
+      // OPCODE(ENTER,      W)        /* arg setup according to flags (23=m5:o5:r1:m5:k5:d1:b1) */
+      regs.a = READ_W();
+      // Skipping for now
     } break;
 
     case OP_RETURN: {
@@ -240,6 +261,27 @@ static void createBody(mlir::MLIRContext &context, mrb_state *mrb, mlir::func::F
       regs.a = READ_B();
       auto val = load(regs.a);
       builder.create<rite::ReturnOp>(location, mrb_value_t, state, val);
+    } break;
+
+    case OP_METHOD: {
+      // OPCODE(METHOD,     BB)       /* R(a) = lambda(SEQ[b],L_METHOD) */
+      regs.a = READ_B();
+      regs.b = READ_B();
+      const mrb_irep *ref = irep->reps[regs.b];
+      auto funcOp = functions.at(ref);
+      auto refAttr = mlir::FlatSymbolRefAttr::get(&context, funcOp.getName());
+      auto def = builder.create<rite::MethodOp>(location, mrb_value_t, state, refAttr);
+      store(regs.a, def);
+    } break;
+
+    case OP_DEF: {
+      // OPCODE(DEF,        BB)       /* R(a).newmethod(Syms(b),R(a+1)) */
+      regs.a = READ_B();
+      regs.b = READ_B();
+      auto mid = builder.create<rite::InternSymOp>(
+          location, builder.getUI32IntegerAttr(0).getType(), state, symbol(irep->syms[regs.b]));
+      builder.create<rite::DefOp>(
+          location, mrb_value_t, state, load(regs.a), load(regs.a + 1), mid);
     } break;
 
     case OP_EQ:
@@ -389,7 +431,7 @@ mlir::ModuleOp lightstorm::convertProcToMLIR(mlir::MLIRContext &context, mrb_sta
   auto module = mlir::ModuleOp::create(moduleLocation, filename);
 
   for (auto &[irep, func] : functions) {
-    createBody(context, mrb, func, irep);
+    createBody(context, mrb, func, irep, functions);
     module.push_back(func);
   }
 
