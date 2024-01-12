@@ -19,3 +19,4 @@ function(add_integration_test dir)
 endfunction()
 
 add_integration_test(00)
+add_integration_test(geometry_quadtree)
