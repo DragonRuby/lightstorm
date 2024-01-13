@@ -157,6 +157,16 @@ def InternSymOp : Rite_Op<"intern_symbol"> {
   }];
 }
 
+// OPCODE(MODULE,     BB)       /* R(a) = newmodule(R(a),Syms(b)) */
+def ModuleOp : Rite_Op<"OP_MODULE"> {
+  let summary = "OP_MODULE";
+  let arguments = (ins StateType:$mrb, ValueType:$target, UI32:$symbol);
+  let results = (outs ValueType);
+  let assemblyFormat = [{
+    `(` operands `)` attr-dict `->` type(results)
+  }];
+}
+
 // OPCODE(METHOD,     BB)       /* R(a) = lambda(SEQ[b],L_METHOD) */
 def MethodOp : Rite_Op<"OP_METHOD"> {
   let summary = "OP_METHOD";
@@ -184,6 +194,16 @@ def SendOp : Rite_Op<"OP_SEND"> {
   let results = (outs ValueType);
   let assemblyFormat = [{
     `(` operands `,` type($argv) `)` attr-dict `->` type(results)
+  }];
+}
+
+// OPCODE(EXEC,       BB)       /* R(a) = blockexec(R(a),SEQ[b]) */
+def ExecOp : Rite_Op<"OP_EXEC"> {
+  let summary = "OP_EXEC";
+  let arguments = (ins StateType:$mrb, ValueType:$receiver, FlatSymbolRefAttr:$func);
+  let results = (outs ValueType);
+  let assemblyFormat = [{
+    `(` operands `,`  $func `)` attr-dict `->` type(results)
   }];
 }
 
@@ -305,5 +325,19 @@ def HashOp : Rite_Op<"OP_HASH"> {
   let results = (outs ValueType);
   let assemblyFormat = [{
     `(` operands `,` type($argv) `)` attr-dict `->` type(results)
+  }];
+}
+
+///
+/// Const Ops
+///
+
+// OPCODE(GETCONST,   BB)       /* R(a) = constget(Syms(b)) */
+def GetConstOp : Rite_Op<"OP_GETCONST"> {
+  let summary = "OP_GETCONST";
+  let arguments = (ins StateType:$mrb, UI32:$symbol);
+  let results = (outs ValueType);
+  let assemblyFormat = [{
+    `(` operands `)` attr-dict `->` type(results)
   }];
 }

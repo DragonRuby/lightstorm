@@ -2,4 +2,10 @@ def add x, y
   x + y
 end
 
-puts add(2, 42)
+module M
+  def f
+    42
+  end
+end
+
+puts add(2, M.f)

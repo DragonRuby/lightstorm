@@ -1,6 +1,7 @@
 #pragma once
 
 #include <mruby.h>
+#include <mruby/variable.h>
 
 #define LIGHTSTORM_INLINE __attribute__((always_inline)) inline
 // EmitC uses `bool` for conditional branch predicates
@@ -68,3 +69,11 @@ mrb_value ls_define_method(mrb_state *mrb, mrb_value target, mrb_value method, m
 
 mrb_value ls_array(mrb_state *mrb, mrb_int size, ...);
 mrb_value ls_hash(mrb_state *mrb, mrb_int size, ...);
+
+mrb_value ls_define_module(mrb_state *mrb, mrb_value target, mrb_sym sym);
+
+mrb_value ls_exec(mrb_state *mrb, mrb_value receiver, mrb_func_t func);
+
+LIGHTSTORM_INLINE mrb_value ls_get_const(mrb_state *mrb, mrb_sym sym) {
+  return mrb_vm_const_get(mrb, sym);
+}

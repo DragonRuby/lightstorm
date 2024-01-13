@@ -212,3 +212,30 @@ LIGHTSTORM_INLINE mrb_value ls_hash(mrb_state *mrb, mrb_int size, ...) {
 
   return hash;
 }
+
+LIGHTSTORM_INLINE mrb_value ls_define_module(mrb_state *mrb, mrb_value target, mrb_sym sym) {
+  if (mrb_nil_p(target)) {
+    // TODO: check when proc is null, this shouldn't happen?
+    // TODO: Fix target class
+    assert(mrb->c->ci->proc);
+    struct RClass *baseclass = MRB_PROC_TARGET_CLASS(mrb->c->ci->proc);
+    if (!baseclass)
+      baseclass = mrb->object_class;
+    target = mrb_obj_value(baseclass);
+  }
+  struct RClass *cls = mrb_vm_define_module(mrb, target, sym);
+  //  mrb_gc_arena_restore(mrb, ai);
+  return mrb_obj_value(cls);
+}
+
+LIGHTSTORM_INLINE mrb_value ls_exec(mrb_state *mrb, mrb_value receiver, mrb_func_t func) {
+  struct RClass *targetClass = mrb_class_ptr(receiver);
+  const struct RProc *upperProc = mrb->c->ci->proc;
+  struct RProc *proc = mrb_proc_new_cfunc(mrb, func);
+  MRB_PROC_SET_TARGET_CLASS(proc, targetClass);
+  proc->flags |= MRB_PROC_SCOPE;
+  proc->upper = upperProc;
+  mrb_vm_ci_proc_set(mrb->c->ci, proc);
+  mrb_value ret = func(mrb, receiver);
+  return ret;
+}

@@ -267,6 +267,17 @@ static void createBody(mlir::MLIRContext &context, mrb_state *mrb, mlir::func::F
       store(regs.a, def);
     } break;
 
+    case OP_EXEC: {
+      // OPCODE(EXEC,       BB)       /* R(a) = blockexec(R(a),SEQ[b]) */
+      regs.a = READ_B();
+      regs.b = READ_B();
+      const mrb_irep *ref = irep->reps[regs.b];
+      auto funcOp = functions.at(ref);
+      auto refAttr = mlir::FlatSymbolRefAttr::get(&context, funcOp.getName());
+      auto def = builder.create<rite::ExecOp>(location, mrb_value_t, state, load(regs.a), refAttr);
+      store(regs.a, def);
+    } break;
+
     case OP_ENTER: {
       // OPCODE(ENTER,      W)        /* arg setup according to flags (23=m5:o5:r1:m5:k5:d1:b1) */
       regs.a = READ_W();
@@ -278,6 +289,16 @@ static void createBody(mlir::MLIRContext &context, mrb_state *mrb, mlir::func::F
       regs.a = READ_B();
       auto val = load(regs.a);
       builder.create<rite::ReturnOp>(location, mrb_value_t, state, val);
+    } break;
+
+    case OP_MODULE: {
+      // OPCODE(MODULE,     BB)       /* R(a) = newmodule(R(a),Syms(b)) */
+      regs.a = READ_B();
+      regs.b = READ_B();
+      auto sym = builder.create<rite::InternSymOp>(
+          location, builder.getUI32IntegerAttr(0).getType(), state, symbol(irep->syms[regs.b]));
+      auto def = builder.create<rite::ModuleOp>(location, mrb_value_t, state, load(regs.a), sym);
+      store(regs.a, def);
     } break;
 
     case OP_METHOD: {
@@ -374,10 +395,9 @@ static void createBody(mlir::MLIRContext &context, mrb_state *mrb, mlir::func::F
       store(regs.a, def);
     } break;
 
-      ///
-      /// Array Ops
-      ///
-
+    ///
+    /// Array Ops
+    ///
     case OP_ARRAY: {
       // OPCODE(ARRAY,      BB)       /* R(a) = ary_new(R(a),R(a+1)..R(a+b)) */
       regs.a = READ_B();
@@ -407,6 +427,16 @@ static void createBody(mlir::MLIRContext &context, mrb_state *mrb, mlir::func::F
       auto argcOp =
           builder.create<mlir::arith::ConstantOp>(location, builder.getI64IntegerAttr(argc));
       auto def = builder.create<rite::HashOp>(location, mrb_value_t, state, argcOp, argv);
+      store(regs.a, def);
+    } break;
+
+    case OP_GETCONST: {
+      // OPCODE(GETCONST,   BB)       /* R(a) = constget(Syms(b)) */
+      regs.a = READ_B();
+      regs.b = READ_B();
+      auto sym = builder.create<rite::InternSymOp>(
+          location, builder.getUI32IntegerAttr(0).getType(), state, symbol(irep->syms[regs.b]));
+      auto def = builder.create<rite::GetConstOp>(location, mrb_value_t, state, sym);
       store(regs.a, def);
     } break;
 

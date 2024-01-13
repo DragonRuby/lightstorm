@@ -136,6 +136,28 @@ struct SendOpConversion : public LightstormConversionPattern<rite::SendOp> {
   }
 };
 
+struct ExecOpConversion : public LightstormConversionPattern<rite::ExecOp> {
+  explicit ExecOpConversion(LightstormConversionContext &conversionContext)
+      : LightstormConversionPattern(conversionContext) {}
+
+  mlir::LogicalResult matchAndRewrite(rite::ExecOp op, llvm::ArrayRef<mlir::Value> operands,
+                                      llvm::ArrayRef<mlir::Type> operandTypes,
+                                      mlir::Type resultType,
+                                      mlir::ConversionPatternRewriter &rewriter) const final {
+    auto mrb_func_t = mlir::emitc::OpaqueType::get(getContext(), "mrb_func_t");
+    auto ref = rewriter.create<mlir::emitc::ConstantOp>(
+        op->getLoc(),
+        mrb_func_t,
+        mlir::emitc::OpaqueAttr::get(getContext(), op.getFuncAttr().getAttr()));
+    auto func = lookupOrCreateFn(
+        op, "ls_exec", { operandTypes.front(), operandTypes.back(), mrb_func_t }, resultType);
+    auto newOp = rewriter.create<mlir::func::CallOp>(
+        op->getLoc(), func, mlir::ValueRange{ operands.front(), operands.back(), ref });
+    rewriter.replaceOp(op, newOp.getResult(0));
+    return mlir::success();
+  }
+};
+
 struct MethodOpConversion : public LightstormConversionPattern<rite::MethodOp> {
   explicit MethodOpConversion(LightstormConversionContext &conversionContext)
       : LightstormConversionPattern(conversionContext) {}
@@ -263,6 +285,7 @@ void lightstorm::convertRiteToEmitC(mlir::MLIRContext &context, mlir::ModuleOp m
       ///
       lightstorm_conversion::InternSymOpConversion,
       lightstorm_conversion::SendOpConversion,
+      lightstorm_conversion::ExecOpConversion,
       lightstorm_conversion::MethodOpConversion,
       lightstorm_conversion::ReturnOpConversion,
       lightstorm_conversion::KindOpConversion<rite::BranchPredicateOp>,
@@ -280,6 +303,8 @@ void lightstorm::convertRiteToEmitC(mlir::MLIRContext &context, mlir::ModuleOp m
   DirectOpConversion(rite::ArrayOp, ls_array);
   DirectOpConversion(rite::HashOp, ls_hash);
   DirectOpConversion(rite::SClassOp, ls_load_singleton_class);
+  DirectOpConversion(rite::ModuleOp, ls_define_module);
+  DirectOpConversion(rite::GetConstOp, ls_get_const);
 
   mlir::FrozenRewritePatternSet frozenPatterns(std::move(patterns));
   if (mlir::failed(mlir::applyFullConversion(module.getOperation(), target, frozenPatterns))) {
