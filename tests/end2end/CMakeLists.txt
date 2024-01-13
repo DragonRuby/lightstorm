@@ -14,6 +14,7 @@ endfunction()
 
 add_end2end_test(loads.rb)
 add_end2end_test(arith.rb)
+add_end2end_test(array.rb)
 add_end2end_test(cmp.rb)
 add_end2end_test(jumps.rb)
 add_end2end_test(long_loop.rb)

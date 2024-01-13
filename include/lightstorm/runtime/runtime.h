@@ -65,3 +65,5 @@ LIGHTSTORM_INLINE mrb_value ls_load_sym(mrb_state *mrb, mrb_sym sym) {
 mrb_value ls_load_target_class_value(mrb_state *mrb);
 mrb_value ls_create_method(mrb_state *mrb, mrb_func_t func);
 mrb_value ls_define_method(mrb_state *mrb, mrb_value target, mrb_value method, mrb_sym mid);
+
+mrb_value ls_array(mrb_state *mrb, mrb_int size, ...);

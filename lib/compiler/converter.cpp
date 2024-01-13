@@ -367,6 +367,21 @@ static void createBody(mlir::MLIRContext &context, mrb_state *mrb, mlir::func::F
       store(regs.a, def);
     } break;
 
+    /// Array Ops
+    case OP_ARRAY: {
+      // OPCODE(ARRAY,      BB)       /* R(a) = ary_new(R(a),R(a+1)..R(a+b)) */
+      regs.a = READ_B();
+      regs.b = READ_B();
+      std::vector<mlir::Value> argv;
+      for (uint32_t i = regs.a; i < regs.a + regs.b; i++) {
+        argv.push_back(load(i));
+      }
+      auto argc =
+          builder.create<mlir::arith::ConstantOp>(location, builder.getI64IntegerAttr(regs.b));
+      auto def = builder.create<rite::ArrayOp>(location, mrb_value_t, state, argc, argv);
+      store(regs.a, def);
+    } break;
+
     default: {
       using namespace std::string_literals;
       auto msg = "Hit unsupported op: "s + fs_opcode_name(opcode);

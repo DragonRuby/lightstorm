@@ -269,3 +269,17 @@ def ArithOp : Rite_Op<"arith"> {
     `(` operands `)` attr-dict `->` type(results)
   }];
 }
+
+///
+/// Array Ops
+///
+
+// OPCODE(ARRAY,      BB)       /* R(a) = ary_new(R(a),R(a+1)..R(a+b)) */
+def ArrayOp : Rite_Op<"OP_ARRAY"> {
+  let summary = "OP_ARRAY";
+  let arguments = (ins StateType:$mrb, I64:$argc, Variadic<ValueType>:$argv);
+  let results = (outs ValueType);
+  let assemblyFormat = [{
+    `(` operands `,` type($argv) `)` attr-dict `->` type(results)
+  }];
+}

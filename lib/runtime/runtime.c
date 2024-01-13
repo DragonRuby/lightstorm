@@ -1,5 +1,6 @@
 #include "lightstorm/runtime/runtime.h"
 #include <assert.h>
+#include <mruby/array.h>
 #include <mruby/class.h>
 #include <mruby/error.h>
 #include <mruby/numeric.h>
@@ -181,4 +182,15 @@ LIGHTSTORM_INLINE mrb_value ls_define_method(mrb_state *mrb, mrb_value target, m
   MRB_METHOD_FROM_PROC(m, proc);
   mrb_define_method_raw(mrb, targetClass, mid, m);
   return mrb_nil_value();
+}
+
+LIGHTSTORM_INLINE mrb_value ls_array(mrb_state *mrb, mrb_int size, ...) {
+  mrb_value argv[size];
+  va_list args;
+  va_start(args, size);
+  for (mrb_int i = 0; i < size; i++) {
+    argv[i] = va_arg(args, mrb_value);
+  }
+  va_end(args);
+  return mrb_ary_new_from_values(mrb, size, argv);
 }
