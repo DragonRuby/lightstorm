@@ -71,6 +71,16 @@ def LoadSymOp : Rite_Op<"OP_LOADSYM"> {
   }];
 }
 
+// OPCODE(SCLASS,     B)        /* R(a) = R(a).singleton_class */
+def SClassOp : Rite_Op<"OP_SCLASS"> {
+  let summary = "OP_SCLASS";
+  let arguments = (ins StateType:$mrb, ValueType:$target);
+  let results = (outs ValueType);
+  let assemblyFormat = [{
+    `(` operands `)` attr-dict `->` type(results)
+  }];
+}
+
 // OP_LOADNIL
 def LoadValueNil : I32EnumAttrCase<"nil_value", 1>;
 // OP_LOADSELF
