@@ -283,3 +283,17 @@ def ArrayOp : Rite_Op<"OP_ARRAY"> {
     `(` operands `,` type($argv) `)` attr-dict `->` type(results)
   }];
 }
+
+///
+/// Hash Ops
+///
+
+// OPCODE(HASH,       BB)       /* R(a) = hash_new(R(a),R(a+1)..R(a+b*2-1)) */
+def HashOp : Rite_Op<"OP_HASH"> {
+  let summary = "OP_HASH";
+  let arguments = (ins StateType:$mrb, I64:$argc, Variadic<ValueType>:$argv);
+  let results = (outs ValueType);
+  let assemblyFormat = [{
+    `(` operands `,` type($argv) `)` attr-dict `->` type(results)
+  }];
+}

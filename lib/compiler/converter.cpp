@@ -367,7 +367,10 @@ static void createBody(mlir::MLIRContext &context, mrb_state *mrb, mlir::func::F
       store(regs.a, def);
     } break;
 
-    /// Array Ops
+      ///
+      /// Array Ops
+      ///
+
     case OP_ARRAY: {
       // OPCODE(ARRAY,      BB)       /* R(a) = ary_new(R(a),R(a+1)..R(a+b)) */
       regs.a = READ_B();
@@ -379,6 +382,24 @@ static void createBody(mlir::MLIRContext &context, mrb_state *mrb, mlir::func::F
       auto argc =
           builder.create<mlir::arith::ConstantOp>(location, builder.getI64IntegerAttr(regs.b));
       auto def = builder.create<rite::ArrayOp>(location, mrb_value_t, state, argc, argv);
+      store(regs.a, def);
+    } break;
+
+    ///
+    /// Hash Ops
+    ///
+    case OP_HASH: {
+      // OPCODE(HASH,       BB)       /* R(a) = hash_new(R(a),R(a+1)..R(a+b*2-1)) */
+      regs.a = READ_B();
+      regs.b = READ_B();
+      auto argc = regs.b * 2;
+      std::vector<mlir::Value> argv;
+      for (int i = regs.a; i < regs.a + argc; i++) {
+        argv.push_back(load(i));
+      }
+      auto argcOp =
+          builder.create<mlir::arith::ConstantOp>(location, builder.getI64IntegerAttr(argc));
+      auto def = builder.create<rite::HashOp>(location, mrb_value_t, state, argcOp, argv);
       store(regs.a, def);
     } break;
 

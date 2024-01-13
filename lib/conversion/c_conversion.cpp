@@ -278,6 +278,7 @@ void lightstorm::convertRiteToEmitC(mlir::MLIRContext &context, mlir::ModuleOp m
   DirectOpConversion(rite::LoadLocalVariableOp, ls_load_local_variable);
   DirectOpConversion(rite::DefOp, ls_define_method);
   DirectOpConversion(rite::ArrayOp, ls_array);
+  DirectOpConversion(rite::HashOp, ls_hash);
 
   mlir::FrozenRewritePatternSet frozenPatterns(std::move(patterns));
   if (mlir::failed(mlir::applyFullConversion(module.getOperation(), target, frozenPatterns))) {

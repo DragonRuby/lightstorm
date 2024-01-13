@@ -67,3 +67,4 @@ mrb_value ls_create_method(mrb_state *mrb, mrb_func_t func);
 mrb_value ls_define_method(mrb_state *mrb, mrb_value target, mrb_value method, mrb_sym mid);
 
 mrb_value ls_array(mrb_state *mrb, mrb_int size, ...);
+mrb_value ls_hash(mrb_state *mrb, mrb_int size, ...);

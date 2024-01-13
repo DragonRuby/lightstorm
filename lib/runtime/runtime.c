@@ -3,6 +3,7 @@
 #include <mruby/array.h>
 #include <mruby/class.h>
 #include <mruby/error.h>
+#include <mruby/hash.h>
 #include <mruby/numeric.h>
 #include <mruby/presym.h>
 #include <mruby/proc.h>
@@ -193,4 +194,21 @@ LIGHTSTORM_INLINE mrb_value ls_array(mrb_state *mrb, mrb_int size, ...) {
   }
   va_end(args);
   return mrb_ary_new_from_values(mrb, size, argv);
+}
+
+LIGHTSTORM_INLINE mrb_value ls_hash(mrb_state *mrb, mrb_int size, ...) {
+  mrb_value argv[size];
+  va_list args;
+  va_start(args, size);
+  for (mrb_int i = 0; i < size; i++) {
+    argv[i] = va_arg(args, mrb_value);
+  }
+  va_end(args);
+
+  mrb_value hash = mrb_hash_new_capa(mrb, size);
+  for (int i = 0; i < size; i += 2) {
+    mrb_hash_set(mrb, hash, argv[i], argv[i + 1]);
+  }
+
+  return hash;
 }
