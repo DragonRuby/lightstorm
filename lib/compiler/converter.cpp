@@ -71,11 +71,8 @@ static void createBody(mlir::MLIRContext &context, mrb_state *mrb, mlir::func::F
   mlir::OpBuilder builder(&context);
   builder.setInsertionPointToEnd(entryBlock);
 
-  auto symbol = [&](mrb_sym sym) {
-    return rite::mrb_symAttr::get(&context, mrb_sym_name(mrb, sym));
-  };
-
   std::unordered_map<int64_t, rite::VirtualRegisterOp> vregs;
+  // Lazily generate a virtual register for load/store operations
   auto vreg = [&](int64_t reg) {
     if (!vregs.contains(reg)) {
       mlir::OpBuilder::InsertionGuard insertGuard(builder);
@@ -95,6 +92,7 @@ static void createBody(mlir::MLIRContext &context, mrb_state *mrb, mlir::func::F
     return builder.create<rite::LoadOp>(functionLocation, mrb_value_t, r);
   };
 
+  // Initialize local variables
   for (int i = 0; i < irep->nlocals - 1; i++) {
     auto index = builder.create<mlir::arith::ConstantIndexOp>(functionLocation, i + 1);
     auto def =
@@ -117,7 +115,13 @@ static void createBody(mlir::MLIRContext &context, mrb_state *mrb, mlir::func::F
     line = mrb_debug_get_line(mrb, irep, pc - irep->iseq);
     auto location = mlir::FileLineColLoc::get(&context, filename, line, pc_offset);
 
-    addressMapping[pc_offset] = &entryBlock->back();
+    auto symbol = [&](mrb_sym sym) {
+      auto attr = rite::mrb_symAttr::get(&context, mrb_sym_name(mrb, sym));
+      auto ui32t = builder.getUI32IntegerAttr(0).getType();
+      return builder.create<rite::InternSymOp>(location, ui32t, state, attr);
+    };
+
+    addressMapping[pc_offset] = &body->back();
 
     Regs regs{};
     auto opcode = (mrb_insn)*pc;
@@ -222,8 +226,7 @@ static void createBody(mlir::MLIRContext &context, mrb_state *mrb, mlir::func::F
       // OPCODE(LOADSYM,    BB)       /* R(a) = Syms(b) */
       regs.a = READ_B();
       regs.b = READ_B();
-      auto sym = builder.create<rite::InternSymOp>(
-          location, builder.getUI32IntegerAttr(0).getType(), state, symbol(irep->syms[regs.b]));
+      auto sym = symbol(irep->syms[regs.b]);
       auto def = builder.create<rite::LoadSymOp>(location, mrb_value_t, state, sym);
       store(regs.a, def);
     } break;
@@ -258,8 +261,7 @@ static void createBody(mlir::MLIRContext &context, mrb_state *mrb, mlir::func::F
         // actual argv packed in an array
         usesAttr.push_back(regs.a + 1);
       }
-      auto mid = builder.create<rite::InternSymOp>(
-          location, builder.getUI32IntegerAttr(0).getType(), state, symbol(irep->syms[regs.b]));
+      auto mid = symbol(irep->syms[regs.b]);
       auto argc =
           builder.create<mlir::arith::ConstantOp>(location, builder.getI64IntegerAttr(regs.c));
       auto def =
@@ -295,8 +297,7 @@ static void createBody(mlir::MLIRContext &context, mrb_state *mrb, mlir::func::F
       // OPCODE(MODULE,     BB)       /* R(a) = newmodule(R(a),Syms(b)) */
       regs.a = READ_B();
       regs.b = READ_B();
-      auto sym = builder.create<rite::InternSymOp>(
-          location, builder.getUI32IntegerAttr(0).getType(), state, symbol(irep->syms[regs.b]));
+      auto sym = symbol(irep->syms[regs.b]);
       auto def = builder.create<rite::ModuleOp>(location, mrb_value_t, state, load(regs.a), sym);
       store(regs.a, def);
     } break;
@@ -316,8 +317,7 @@ static void createBody(mlir::MLIRContext &context, mrb_state *mrb, mlir::func::F
       // OPCODE(DEF,        BB)       /* R(a).newmethod(Syms(b),R(a+1)) */
       regs.a = READ_B();
       regs.b = READ_B();
-      auto mid = builder.create<rite::InternSymOp>(
-          location, builder.getUI32IntegerAttr(0).getType(), state, symbol(irep->syms[regs.b]));
+      auto mid = symbol(irep->syms[regs.b]);
       builder.create<rite::DefOp>(
           location, mrb_value_t, state, load(regs.a), load(regs.a + 1), mid);
     } break;
@@ -434,8 +434,7 @@ static void createBody(mlir::MLIRContext &context, mrb_state *mrb, mlir::func::F
       // OPCODE(GETCONST,   BB)       /* R(a) = constget(Syms(b)) */
       regs.a = READ_B();
       regs.b = READ_B();
-      auto sym = builder.create<rite::InternSymOp>(
-          location, builder.getUI32IntegerAttr(0).getType(), state, symbol(irep->syms[regs.b]));
+      auto sym = symbol(irep->syms[regs.b]);
       auto def = builder.create<rite::GetConstOp>(location, mrb_value_t, state, sym);
       store(regs.a, def);
     } break;
