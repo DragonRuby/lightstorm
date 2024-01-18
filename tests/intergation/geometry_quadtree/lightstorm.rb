@@ -85,11 +85,11 @@ module GTK
       end
 
 
-      alias_method :quad_tree_bounding_box, :quadtree_bounding_box
-      alias_method :quad_tree_insert_rect,  :quadtree_insert_rect
-      alias_method :quad_tree_create,       :quadtree_create
-      alias_method :create_quad_tree,       :quadtree_create
-      alias_method :create_quadtree,        :quadtree_create
+      #alias_method :quad_tree_bounding_box, :quadtree_bounding_box
+      #alias_method :quad_tree_insert_rect,  :quadtree_insert_rect
+      #alias_method :quad_tree_create,       :quadtree_create
+      #alias_method :create_quad_tree,       :quadtree_create
+      #alias_method :create_quadtree,        :quadtree_create
     end
   end
 end
