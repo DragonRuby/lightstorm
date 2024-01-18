@@ -4,6 +4,9 @@ add_library(lightstorm_conversion STATIC
 target_include_directories(lightstorm_conversion
   PRIVATE
   ${CMAKE_SOURCE_DIR}/include
+)
+target_include_directories(lightstorm_conversion
+  PRIVATE SYSTEM
   ${LLVM_INCLUDE_DIRS}
   ${MLIR_INCLUDE_DIRS}
 )

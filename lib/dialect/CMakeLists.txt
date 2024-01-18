@@ -7,8 +7,8 @@ target_include_directories(rite_dialect
 )
 target_compile_options(rite_dialect PUBLIC -fno-rtti -fno-exceptions -fvisibility=hidden)
 # Needed by mlir-tablegen
-include_directories(${MLIR_INCLUDE_DIRS})
-include_directories(${LLVM_INCLUDE_DIRS})
+include_directories(SYSTEM ${MLIR_INCLUDE_DIRS})
+include_directories(SYSTEM ${LLVM_INCLUDE_DIRS})
 
 set(LLVM_TARGET_DEFINITIONS ${CMAKE_SOURCE_DIR}/include/lightstorm/dialect/rite.td)
 mlir_tablegen(RiteDialect.h.inc -gen-dialect-decls)

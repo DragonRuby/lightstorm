@@ -4,8 +4,11 @@ add_library(lightstorm_compiler STATIC
 )
 target_include_directories(lightstorm_compiler
   PRIVATE
-  ${CMAKE_SOURCE_DIR}/third_party/mruby/include
   ${CMAKE_SOURCE_DIR}/include
+)
+target_include_directories(lightstorm_compiler
+  PRIVATE SYSTEM
+  ${CMAKE_SOURCE_DIR}/third_party/mruby/include
   ${LLVM_INCLUDE_DIRS}
   ${MLIR_INCLUDE_DIRS}
 )
