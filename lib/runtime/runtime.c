@@ -8,6 +8,8 @@
 #include <mruby/presym.h>
 #include <mruby/proc.h>
 #include <mruby/string.h>
+#include <mruby/throw.h>
+#include <stdlib.h>
 
 void mrb_exc_set(mrb_state *mrb, mrb_value exc);
 
@@ -237,5 +239,29 @@ LIGHTSTORM_INLINE mrb_value ls_exec(mrb_state *mrb, mrb_value receiver, mrb_func
   proc->upper = upperProc;
   mrb_vm_ci_proc_set(mrb->c->ci, proc);
   mrb_value ret = func(mrb, receiver);
+  return ret;
+}
+
+LIGHTSTORM_INLINE mrb_value ls_send(mrb_state *mrb, mrb_value recv, mrb_sym name, mrb_int argc, ...) {
+  mrb_value argv[argc];
+  va_list args;
+  va_start(args, argc);
+  for (mrb_int i = 0; i < argc; i++) {
+    argv[i] = va_arg(args, mrb_value);
+  }
+  va_end(args);
+  struct mrb_jmpbuf *prev_jmp = mrb->jmp;
+  struct mrb_jmpbuf c_jmp;
+  mrb_value ret = mrb_nil_value();
+  MRB_TRY(&c_jmp) {
+    mrb->jmp = &c_jmp;
+    ret = mrb_funcall_argv(mrb, recv, name, argc, argv);
+    mrb->jmp = prev_jmp;
+  }
+  MRB_CATCH(&c_jmp) {
+    mrb_print_error(mrb);
+    abort();
+  }
+  MRB_END_EXC(&c_jmp);
   return ret;
 }

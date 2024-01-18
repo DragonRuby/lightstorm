@@ -1,6 +1,6 @@
 #include <mruby.h>
-#include <mruby/proc.h>
 #include <mruby/irep.h>
+#include <mruby/proc.h>
 
 mrb_value lightstorm_top(mrb_state *mrb, mrb_value self);
 extern const uint8_t lighstorm_host[];
