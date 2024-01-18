@@ -3,6 +3,8 @@
 #include <mlir/Dialect/Arith/IR/Arith.h>
 #include <mlir/Dialect/ControlFlow/IR/ControlFlowOps.h>
 #include <mlir/Dialect/Func/IR/FuncOps.h>
+#include <mlir/Pass/PassManager.h>
+#include <mlir/Transforms/Passes.h>
 #include <mruby/opcode.h>
 #include <mruby/proc.h>
 #include <unordered_set>
@@ -71,6 +73,8 @@ static void createBody(mlir::MLIRContext &context, mrb_state *mrb, mlir::func::F
   mlir::OpBuilder builder(&context);
   builder.setInsertionPointToEnd(entryBlock);
 
+  // A set of virtual registers used for SSA generation
+  // These should be destructed by mem2reg pass once the IR construction is complete
   std::unordered_map<int64_t, rite::VirtualRegisterOp> vregs;
   // Lazily generate a virtual register for load/store operations
   auto vreg = [&](int64_t reg) {
@@ -100,28 +104,43 @@ static void createBody(mlir::MLIRContext &context, mrb_state *mrb, mlir::func::F
     store(i + 1, def);
   }
 
-  // Potential jump targets
-  std::unordered_map<int64_t, mlir::Operation *> addressMapping;
-  // Real jump targets
-  std::unordered_map<mlir::Operation *, std::vector<int64_t>> jumpTargets;
+  // To reconstruct CFG, each opcode goes into a separate basic block
+  // A mapping 'address' -> 'block' is maintained separately to rewire the CFG once all bytecode
+  // is processed
+  std::unordered_map<int64_t, mlir::Block *> addressMapping;
 
-  // Just a temp instruction for construction of CFG
-  auto tempRegister = vreg(0);
+  // There are three cases for jumps:
+  //  - unconditional (OP_JMP) with a single jump target
+  //  - conditional (OP_JMPIF, OP_JMPNOT, OP_JMPNIL) with two jump targets (if-then/else)
+  //  - exceptions: this one is unsupported at the moment
+  // We track them separately by mapping a basic block to its jump targets
+  // The jump targets later used (in combination with the address mapping) to rewire CFG
+  std::unordered_map<mlir::Block *, int64_t> unconditionalTargets;
+  std::unordered_map<mlir::Block *, std::pair<int64_t, int64_t>> conditionalTargets;
 
-  const mrb_code *sp = irep->iseq;
+  auto body = func.addBlock();
+  builder.create<mlir::cf::BranchOp>(functionLocation, body);
+  builder.setInsertionPointToStart(body);
+
+  // Iterating over each (supported) bytecode instruction to convert it into MLIR operations
   for (uint16_t pc_offset = 0; pc_offset < irep->ilen; pc_offset++) {
+    // By default, each basic block falls through unconditionally to the next basic block imitating
+    // sequential bytecode execution.
+    // In case of OP_RETURN no fallthrough happens, thus we shouldn't add CondBranch at the end of
+    // the loop
+    bool fallthrough = true;
     const mrb_code *pc_base = (irep->iseq + pc_offset);
     const mrb_code *pc = pc_base;
     line = mrb_debug_get_line(mrb, irep, pc - irep->iseq);
     auto location = mlir::FileLineColLoc::get(&context, filename, line, pc_offset);
+
+    addressMapping[pc_offset] = body;
 
     auto symbol = [&](mrb_sym sym) {
       auto attr = rite::mrb_symAttr::get(&context, mrb_sym_name(mrb, sym));
       auto ui32t = builder.getUI32IntegerAttr(0).getType();
       return builder.create<rite::InternSymOp>(location, ui32t, state, attr);
     };
-
-    addressMapping[pc_offset] = &body->back();
 
     Regs regs{};
     auto opcode = (mrb_insn)*pc;
@@ -130,6 +149,7 @@ static void createBody(mlir::MLIRContext &context, mrb_state *mrb, mlir::func::F
     case OP_NOP:
     case OP_STOP:
       // NOOP
+      // still generates a basic block, but these are unreachable and will be eliminated in the end
       break;
 
     case OP_MOVE: {
@@ -291,6 +311,7 @@ static void createBody(mlir::MLIRContext &context, mrb_state *mrb, mlir::func::F
       regs.a = READ_B();
       auto val = load(regs.a);
       builder.create<rite::ReturnOp>(location, mrb_value_t, state, val);
+      fallthrough = false;
     } break;
 
     case OP_MODULE: {
@@ -344,8 +365,7 @@ static void createBody(mlir::MLIRContext &context, mrb_state *mrb, mlir::func::F
     case OP_JMP: {
       regs.a = READ_S();
       uint32_t target = (pc - irep->iseq) + (int16_t)regs.a;
-      // inserting a temp unused variable just to attach the target to something
-      jumpTargets[load(0)] = { target };
+      unconditionalTargets[body] = target;
     } break;
 
     case OP_JMPIF:
@@ -364,7 +384,7 @@ static void createBody(mlir::MLIRContext &context, mrb_state *mrb, mlir::func::F
       auto next_address = (uint16_t)(pc_offset + pc - pc_base);
       auto pred = builder.create<rite::BranchPredicateOp>(
           location, builder.getI1Type(), load(regs.a), kinds[idx]);
-      jumpTargets[pred] = { target, next_address };
+      conditionalTargets[body] = { target, next_address };
     } break;
 
     case OP_ADD:
@@ -446,55 +466,51 @@ static void createBody(mlir::MLIRContext &context, mrb_state *mrb, mlir::func::F
     }
     }
 
+    body = func.addBlock();
+    if (fallthrough) {
+      builder.create<mlir::cf::BranchOp>(functionLocation, body);
+    }
+    builder.setInsertionPointToStart(body);
+
     pc_offset += pc - pc_base - 1;
   }
 
-  ///
-  /// CFG construction
-  ///
+  // Rewiring CFG
 
-  for (auto &[address, op] : addressMapping) {
-    addressMapping[address] = op->getNextNode();
+  // Basic block with unconditional targets must terminate with an unconditional fallthrough
+  // cf::BranchOp Once we insert a new BranchOp with the right target, the old fallthrough BranchOp
+  // should be removed
+  for (auto &[block, target] : unconditionalTargets) {
+    builder.setInsertionPointToEnd(block);
+    auto &branch = block->back();
+    assert(branch.hasTrait<mlir::OpTrait::IsTerminator>());
+    assert(llvm::isa<mlir::cf::BranchOp>(branch));
+    builder.create<mlir::cf::BranchOp>(branch.getLoc(), addressMapping.at(target));
+    branch.erase();
+  }
+  // Basic block with conditional targets must terminate with an unconditional fallthrough
+  // cf::BranchOp which is preceded by a rite::BranchPredicateOp
+  // Once we insert CondBranchOp with the right targets, the old fallthrough BranchOp should be
+  // removed
+  for (auto &[block, targets] : conditionalTargets) {
+    builder.setInsertionPointToEnd(block);
+    auto &branch = block->back();
+    assert(branch.hasTrait<mlir::OpTrait::IsTerminator>());
+    auto predicate = branch.getPrevNode();
+    assert(predicate);
+    assert(llvm::isa<rite::BranchPredicateOp>(predicate));
+    builder.create<mlir::cf::CondBranchOp>(predicate->getLoc(),
+                                           predicate->getResult(0),
+                                           addressMapping.at(targets.first),
+                                           addressMapping.at(targets.second));
+    branch.erase();
   }
 
-  std::unordered_map<mlir::Operation *, mlir::Operation *> fallthroughJumps;
-
-  // Split blocks
-  for (auto &[op, targets] : jumpTargets) {
-    std::vector<mlir::Operation *> opTargets;
-    for (auto target : targets) {
-      auto targetOp = addressMapping.at(target);
-      assert(targetOp);
-      auto previousOp = targetOp->getPrevNode();
-      assert(previousOp);
-      targetOp->getBlock()->splitBlock(targetOp);
-      if (!jumpTargets.contains(previousOp)) {
-        fallthroughJumps[previousOp] = targetOp;
-      }
-    }
-  }
-
-  for (auto &[op, targets] : jumpTargets) {
-    builder.setInsertionPointAfter(op);
-    if (llvm::isa<rite::BranchPredicateOp>(op)) {
-      assert(op->getNumResults() == 1);
-      assert(targets.size() == 2);
-      builder.create<mlir::cf::CondBranchOp>(op->getLoc(),
-                                             op->getResult(0),
-                                             addressMapping.at(targets[0])->getBlock(),
-                                             addressMapping.at(targets[1])->getBlock());
-    } else {
-      assert(targets.size() == 1);
-      builder.create<mlir::cf::BranchOp>(op->getLoc(), addressMapping.at(targets[0])->getBlock());
-    }
-  }
-
-  for (auto &[op, target] : fallthroughJumps) {
-    builder.setInsertionPointAfter(op);
-    builder.create<mlir::cf::BranchOp>(op->getLoc(), target->getBlock());
-  }
-  if (tempRegister->getUsers().empty()) {
-    tempRegister->erase();
+  // Eliminating unreachable basic blocks (among other things)
+  mlir::PassManager pipeline(&context);
+  pipeline.addPass(mlir::createCanonicalizerPass());
+  if (mlir::failed(pipeline.run(func))) {
+    llvm::errs() << "Failed to canonicalize IR\n";
   }
 }
 
