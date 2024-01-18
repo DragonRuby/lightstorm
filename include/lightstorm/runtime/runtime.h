@@ -24,16 +24,27 @@ LIGHTSTORM_INLINE mrb_value ls_load_false_value(mrb_state *mrb) {
   return mrb_false_value();
 }
 
-#define ls_funcall_0(mrb, recv, name, argc) mrb_funcall_id(mrb, recv, name, argc, NULL)
-#define ls_funcall_1(mrb, recv, name, argc, ...) mrb_funcall_id(mrb, recv, name, argc, __VA_ARGS__)
-#define ls_funcall_2(mrb, recv, name, argc, ...) mrb_funcall_id(mrb, recv, name, argc, __VA_ARGS__)
-#define ls_funcall_3(mrb, recv, name, argc, ...) mrb_funcall_id(mrb, recv, name, argc, __VA_ARGS__)
-#define ls_funcall_4(mrb, recv, name, argc, ...) mrb_funcall_id(mrb, recv, name, argc, __VA_ARGS__)
-#define ls_funcall_5(mrb, recv, name, argc, ...) mrb_funcall_id(mrb, recv, name, argc, __VA_ARGS__)
-#define ls_funcall_6(mrb, recv, name, argc, ...) mrb_funcall_id(mrb, recv, name, argc, __VA_ARGS__)
-#define ls_funcall_7(mrb, recv, name, argc, ...) mrb_funcall_id(mrb, recv, name, argc, __VA_ARGS__)
-#define ls_funcall_8(mrb, recv, name, argc, ...) mrb_funcall_id(mrb, recv, name, argc, __VA_ARGS__)
-#define ls_funcall_9(mrb, recv, name, argc, ...) mrb_funcall_id(mrb, recv, name, argc, __VA_ARGS__)
+#define ls_send_0(mrb, recv, name, argc) mrb_funcall_id(mrb, recv, name, argc, NULL)
+#define ls_send_1(mrb, recv, name, argc, ...) mrb_funcall_id(mrb, recv, name, argc, __VA_ARGS__)
+#define ls_send_2(mrb, recv, name, argc, ...) mrb_funcall_id(mrb, recv, name, argc, __VA_ARGS__)
+#define ls_send_3(mrb, recv, name, argc, ...) mrb_funcall_id(mrb, recv, name, argc, __VA_ARGS__)
+#define ls_send_4(mrb, recv, name, argc, ...) mrb_funcall_id(mrb, recv, name, argc, __VA_ARGS__)
+#define ls_send_5(mrb, recv, name, argc, ...) mrb_funcall_id(mrb, recv, name, argc, __VA_ARGS__)
+#define ls_send_6(mrb, recv, name, argc, ...) mrb_funcall_id(mrb, recv, name, argc, __VA_ARGS__)
+#define ls_send_7(mrb, recv, name, argc, ...) mrb_funcall_id(mrb, recv, name, argc, __VA_ARGS__)
+#define ls_send_8(mrb, recv, name, argc, ...) mrb_funcall_id(mrb, recv, name, argc, __VA_ARGS__)
+#define ls_send_9(mrb, recv, name, argc, ...) mrb_funcall_id(mrb, recv, name, argc, __VA_ARGS__)
+
+#define ls_hash_0(mrb, size) ls_hash(mrb, size, NULL)
+#define ls_hash_1(mrb, size, ...) ls_hash(mrb, size, __VA_ARGS__)
+#define ls_hash_2(mrb, size, ...) ls_hash(mrb, size, __VA_ARGS__)
+#define ls_hash_3(mrb, size, ...) ls_hash(mrb, size, __VA_ARGS__)
+#define ls_hash_4(mrb, size, ...) ls_hash(mrb, size, __VA_ARGS__)
+#define ls_hash_5(mrb, size, ...) ls_hash(mrb, size, __VA_ARGS__)
+#define ls_hash_6(mrb, size, ...) ls_hash(mrb, size, __VA_ARGS__)
+#define ls_hash_7(mrb, size, ...) ls_hash(mrb, size, __VA_ARGS__)
+#define ls_hash_8(mrb, size, ...) ls_hash(mrb, size, __VA_ARGS__)
+#define ls_hash_9(mrb, size, ...) ls_hash(mrb, size, __VA_ARGS__)
 
 mrb_value ls_compare_gt(mrb_state *mrb, mrb_value lhs, mrb_value rhs);
 mrb_value ls_compare_ge(mrb_state *mrb, mrb_value lhs, mrb_value rhs);
@@ -62,6 +73,9 @@ LIGHTSTORM_INLINE mrb_value ls_load_local_variable(mrb_state *mrb, int64_t idx) 
 LIGHTSTORM_INLINE mrb_value ls_load_sym(mrb_state *mrb, mrb_sym sym) {
   return mrb_symbol_value(sym);
 }
+LIGHTSTORM_INLINE mrb_value ls_load_singleton_class(mrb_state *mrb, mrb_value target) {
+  return mrb_singleton_class(mrb, target);
+}
 
 mrb_value ls_load_target_class_value(mrb_state *mrb);
 mrb_value ls_create_method(mrb_state *mrb, mrb_func_t func);
@@ -77,3 +91,16 @@ mrb_value ls_exec(mrb_state *mrb, mrb_value receiver, mrb_func_t func);
 LIGHTSTORM_INLINE mrb_value ls_get_const(mrb_state *mrb, mrb_sym sym) {
   return mrb_vm_const_get(mrb, sym);
 }
+
+// Temporary prototypes
+static mrb_value _irep_0(mrb_state *, mrb_value);
+static mrb_value _irep_1(mrb_state *, mrb_value);
+static mrb_value _irep_2(mrb_state *, mrb_value);
+static mrb_value _irep_3(mrb_state *, mrb_value);
+static mrb_value _irep_4(mrb_state *, mrb_value);
+static mrb_value _irep_5(mrb_state *, mrb_value);
+static mrb_value _irep_6(mrb_state *, mrb_value);
+static mrb_value _irep_7(mrb_state *, mrb_value);
+static mrb_value _irep_8(mrb_state *, mrb_value);
+static mrb_value _irep_9(mrb_state *, mrb_value);
+static mrb_value _irep_10(mrb_state *, mrb_value);
