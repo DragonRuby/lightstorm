@@ -341,3 +341,16 @@ def GetConstOp : Rite_Op<"OP_GETCONST"> {
     `(` operands `)` attr-dict `->` type(results)
   }];
 }
+
+///
+/// Classes/Modules
+///
+
+def ClassOp : Rite_Op<"OP_CLASS"> {
+  let summary = "OP_CLASS";
+  let arguments = (ins StateType:$mrb, ValueType:$base_class, ValueType:$super_class, UI32:$symbol);
+  let results = (outs ValueType);
+  let assemblyFormat = [{
+    `(` operands `)` attr-dict `->` type(results)
+  }];
+}

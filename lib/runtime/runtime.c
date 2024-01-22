@@ -242,7 +242,8 @@ LIGHTSTORM_INLINE mrb_value ls_exec(mrb_state *mrb, mrb_value receiver, mrb_func
   return ret;
 }
 
-LIGHTSTORM_INLINE mrb_value ls_send(mrb_state *mrb, mrb_value recv, mrb_sym name, mrb_int argc, ...) {
+LIGHTSTORM_INLINE mrb_value ls_send(mrb_state *mrb, mrb_value recv, mrb_sym name, mrb_int argc,
+                                    ...) {
   mrb_value argv[argc];
   va_list args;
   va_start(args, argc);
@@ -264,4 +265,17 @@ LIGHTSTORM_INLINE mrb_value ls_send(mrb_state *mrb, mrb_value recv, mrb_sym name
   }
   MRB_END_EXC(&c_jmp);
   return ret;
+}
+
+LIGHTSTORM_INLINE mrb_value ls_vm_define_class(mrb_state *mrb, mrb_value base, mrb_value super,
+                                               mrb_sym id) {
+  if (mrb_nil_p(base)) {
+    // TODO: Fix target class
+    struct RClass *baseclass = mrb->c->ci->proc ? MRB_PROC_TARGET_CLASS(mrb->c->ci->proc) : NULL;
+    if (!baseclass)
+      baseclass = mrb->object_class;
+    base = mrb_obj_value(baseclass);
+  }
+  struct RClass *c = mrb_vm_define_class(mrb, base, super, id);
+  return mrb_obj_value(c);
 }

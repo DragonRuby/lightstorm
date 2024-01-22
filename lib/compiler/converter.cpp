@@ -459,6 +459,15 @@ static void createBody(mlir::MLIRContext &context, mrb_state *mrb, mlir::func::F
       store(regs.a, def);
     } break;
 
+    case OP_CLASS: {
+      // OPCODE(CLASS,      BB)       /* R(a) = newclass(R(a),Syms(b),R(a+1)) */
+      regs.a = READ_B();
+      regs.b = READ_B();
+      auto def = builder.create<rite::ClassOp>(
+          location, mrb_value_t, state, load(regs.a), load(regs.a + 1), symbol(irep->syms[regs.b]));
+      store(regs.a, def);
+    } break;
+
     default: {
       using namespace std::string_literals;
       auto msg = "Hit unsupported op: "s + fs_opcode_name(opcode);

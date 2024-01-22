@@ -94,6 +94,8 @@ LIGHTSTORM_INLINE mrb_value ls_get_const(mrb_state *mrb, mrb_sym sym) {
   return mrb_vm_const_get(mrb, sym);
 }
 
+mrb_value ls_vm_define_class(mrb_state *mrb, mrb_value base, mrb_value super, mrb_sym id);
+
 // Temporary prototypes
 static mrb_value _irep_0(mrb_state *, mrb_value);
 static mrb_value _irep_1(mrb_state *, mrb_value);
