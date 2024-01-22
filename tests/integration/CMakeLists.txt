@@ -24,6 +24,10 @@ foreach(file ${files})
 endforeach ()
 
 add_custom_target(run-integration-tests
-  COMMAND env MRUBY_BINARY=$<TARGET_FILE:mruby_binary> FILECHECK_BINARY=filecheck lit -vv ${CMAKE_CURRENT_LIST_DIR}
-  DEPENDS ${test_target_names}
+  COMMAND env
+    MRUBY_BINARY=$<TARGET_FILE:mruby_binary>
+    FILECHECK_BINARY=filecheck
+    LIGHTSTORM_BINARY=$<TARGET_FILE:lightstorm>
+    lit -vv ${CMAKE_CURRENT_LIST_DIR}
+  DEPENDS ${test_target_names} $<TARGET_FILE:lightstorm>
 )

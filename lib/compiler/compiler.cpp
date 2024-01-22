@@ -32,17 +32,19 @@ std::optional<mlir::ModuleOp> Compiler::compileSourceFile(mlir::MLIRContext &con
     fclose(f);
     mrbc_context_free(mrb, mrbc);
     mrb_close(mrb);
+    exit(1);
     return {};
   }
 
   if (0 < p->nerr) {
     /* parse error */
-    std::cerr << file_path.c_str() << ":" << p->error_buffer[0].lineno << ": "
-              << (p->error_buffer[0].message ?: "") << "\n";
+    std::cerr << file_path.c_str() << ":" << p->error_buffer[0].lineno << ":"
+              << p->error_buffer[0].column << ": " << (p->error_buffer[0].message ?: "") << "\n";
     fclose(f);
     mrb_parser_free(p);
     mrbc_context_free(mrb, mrbc);
     mrb_close(mrb);
+    exit(1);
     return {};
   }
 
@@ -63,6 +65,7 @@ std::optional<mlir::ModuleOp> Compiler::compileSourceFile(mlir::MLIRContext &con
   if (construction.run(module).failed()) {
     module.print(llvm::errs());
     llvm::errs() << "\nFailed to run passes\n";
+    exit(1);
   }
 
   return module;

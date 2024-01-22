@@ -58,6 +58,10 @@ static void populatePrototypes(mlir::MLIRContext &context,
   }
 }
 
+static void frontend_error(mlir::FileLineColLoc &location, std::string_view msg) {
+  llvm::errs() << location.getFilename().str() << ":" << location.getLine() << ": " << msg << "\n";
+}
+
 static void createBody(mlir::MLIRContext &context, mrb_state *mrb, mlir::func::FuncOp func,
                        const mrb_irep *irep,
                        const std::unordered_map<const mrb_irep *, mlir::func::FuncOp> &functions) {
@@ -356,6 +360,23 @@ static void createBody(mlir::MLIRContext &context, mrb_state *mrb, mlir::func::F
       // OPCODE(ENTER,      W)        /* arg setup according to flags (23=m5:o5:r1:m5:k5:d1:b1) */
       regs.a = READ_W();
       // Skipping for now
+      mrb_int a = regs.a;
+      mrb_int o = MRB_ASPEC_OPT(a);
+      mrb_int r = MRB_ASPEC_REST(a);
+      mrb_int m2 = MRB_ASPEC_POST(a);
+      mrb_int kd = (MRB_ASPEC_KEY(a) > 0 || MRB_ASPEC_KDICT(a)) ? 1 : 0;
+      if (o != 0) {
+        frontend_error(location, "Default arguments are not supported yet");
+        exit(1);
+      }
+      if (r != 0 || m2 != 0) {
+        frontend_error(location, "Variable arguments are not supported yet");
+        exit(1);
+      }
+      if (kd != 0) {
+        frontend_error(location, "Keyword arguments are not supported yet");
+        exit(1);
+      }
     } break;
 
     case OP_RETURN: {
