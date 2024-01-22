@@ -12,10 +12,10 @@ puts i / i
 # RUN: %t.exe | %filecheck %s %fcheck_opts
 
 # CHECK:44
-# CHECK:84
-# CHECK:41
-# CHECK:0
-# CHECK:42
-# CHECK:1764
-# CHECK:0
-# CHECK:1
+# CHECK-NEXT:84
+# CHECK-NEXT:41
+# CHECK-NEXT:0
+# CHECK-NEXT:42
+# CHECK-NEXT:1764
+# CHECK-NEXT:0
+# CHECK-NEXT:1

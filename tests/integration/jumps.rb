@@ -18,5 +18,5 @@ puts i
 # RUN: %t.exe | %filecheck %s %fcheck_opts
 
 # CHECK:42
-# CHECK:false
-# CHECK:10
+# CHECK-NEXT:false
+# CHECK-NEXT:10

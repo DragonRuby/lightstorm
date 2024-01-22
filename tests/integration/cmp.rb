@@ -8,7 +8,7 @@ puts 5 == 10
 # RUN: %t.exe | %filecheck %s %fcheck_opts
 
 # CHECK:false
-# CHECK:true
-# CHECK:false
-# CHECK:true
-# CHECK:false
+# CHECK-NEXT:true
+# CHECK-NEXT:false
+# CHECK-NEXT:true
+# CHECK-NEXT:false
