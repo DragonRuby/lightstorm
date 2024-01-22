@@ -552,12 +552,43 @@ static void createBody(mlir::MLIRContext &context, mrb_state *mrb, mlir::func::F
       frontend_error(location, "Lambdas are not supported");
     } break;
 
-    case OP_BLOCK:
-    case OP_BLOCK16:
-    case OP_RETURN_BLK: {
+    case OP_LAMBDA16: {
+      regs.a = READ_B();
+      regs.b = READ_S();
+      frontend_error(location, "Lambdas are not supported");
+    } break;
+
+    case OP_BLOCK: {
       regs.a = READ_B();
       regs.b = READ_B();
       frontend_error(location, "Blocks are not supported");
+    } break;
+
+    case OP_BLOCK16: {
+      regs.a = READ_B();
+      regs.b = READ_S();
+      frontend_error(location, "Blocks are not supported");
+    } break;
+
+    case OP_RETURN_BLK: {
+      regs.a = READ_B();
+      frontend_error(location, "Blocks are not supported");
+    } break;
+
+    case OP_EXCEPT: {
+      regs.a = READ_B();
+      frontend_error(location, "Exceptions are not supported");
+    } break;
+
+    case OP_RESCUE: {
+      regs.a = READ_B();
+      regs.b = READ_B();
+      frontend_error(location, "Exceptions are not supported");
+    } break;
+
+    case OP_RAISEIF: {
+      regs.a = READ_B();
+      frontend_error(location, "Exceptions are not supported");
     } break;
 
     default: {
