@@ -1,2 +1,2 @@
 add_subdirectory(end2end)
-add_subdirectory(intergation)
+add_subdirectory(integration)
