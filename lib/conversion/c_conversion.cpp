@@ -331,7 +331,6 @@ void lightstorm::convertRiteToEmitC(mlir::MLIRContext &context, mlir::ModuleOp m
   DirectOpConversion(rite::LoadSymOp, ls_load_sym);
   DirectOpConversion(rite::LoadLocalVariableOp, ls_load_local_variable);
   DirectOpConversion(rite::DefOp, ls_define_method);
-  DirectOpConversion(rite::ArrayOp, ls_array);
   DirectOpConversion(rite::SClassOp, ls_load_singleton_class);
   DirectOpConversion(rite::ModuleOp, ls_define_module);
   DirectOpConversion(rite::GetConstOp, ls_get_const);
@@ -340,16 +339,19 @@ void lightstorm::convertRiteToEmitC(mlir::MLIRContext &context, mlir::ModuleOp m
 
   VarArgOpConversion(rite::SendOp, ls_send);
   VarArgOpConversion(rite::HashOp, ls_hash);
+  VarArgOpConversion(rite::ArrayOp, ls_array);
 
   mlir::FrozenRewritePatternSet frozenPatterns(std::move(patterns));
   if (mlir::failed(mlir::applyFullConversion(module.getOperation(), target, frozenPatterns))) {
     module.getOperation()->print(llvm::errs(), mlir::OpPrintingFlags().enableDebugInfo(true, true));
     llvm::errs() << "Cannot apply C conversion\n";
+    exit(1);
     return;
   }
   if (mlir::failed(mlir::verify(module))) {
     llvm::errs() << "Invalid module after C conversion\n";
     module.print(llvm::errs(), mlir::OpPrintingFlags().enableDebugInfo(true, true));
+    exit(1);
     return;
   }
 }
@@ -370,5 +372,6 @@ void lightstorm::convertMLIRToC(mlir::MLIRContext &context, mlir::ModuleOp modul
 
   if (mlir::failed(mlir::emitc::translateToCpp(module, out, true))) {
     llvm::errs() << "Cannot convert MLIR to C\n";
+    exit(1);
   }
 }

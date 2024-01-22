@@ -572,6 +572,7 @@ static void createBody(mlir::MLIRContext &context, mrb_state *mrb, mlir::func::F
   pipeline.addPass(mlir::createCanonicalizerPass());
   if (mlir::failed(pipeline.run(func))) {
     llvm::errs() << "Failed to canonicalize IR\n";
+    exit(1);
   }
 }
 
