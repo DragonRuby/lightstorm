@@ -91,6 +91,16 @@ def LoadStringOp : Rite_Op<"OP_STRING"> {
   }];
 }
 
+// OPCODE(STRCAT,     B)        /* str_cat(R(a),R(a+1)) */
+def StrCatOp : Rite_Op<"OP_STRCAT"> {
+  let summary = "OP_STRCAT";
+  let arguments = (ins StateType:$mrb, ValueType:$str, ValueType:$cat);
+  let results = (outs ValueType);
+  let assemblyFormat = [{
+    `(` operands `)` attr-dict `->` type(results)
+  }];
+}
+
 // OPCODE(SCLASS,     B)        /* R(a) = R(a).singleton_class */
 def SClassOp : Rite_Op<"OP_SCLASS"> {
   let summary = "OP_SCLASS";

@@ -8,7 +8,7 @@ puts 1_000_000
 puts (-1_000_000)
 puts nil
 puts 42.0
-puts "a string"
+puts "a string #{42}"
 puts true
 puts false
 puts self
@@ -28,7 +28,7 @@ puts :hello
 # CHECK-NEXT:-1000000
 # CHECK-NEXT:
 # CHECK-NEXT:42.0
-# CHECK-NEXT:a string
+# CHECK-NEXT:a string 42
 # CHECK-NEXT:true
 # CHECK-NEXT:false
 # CHECK-NEXT:main

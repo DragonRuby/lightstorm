@@ -1,6 +1,7 @@
 #pragma once
 
 #include <mruby.h>
+#include <mruby/string.h>
 #include <mruby/variable.h>
 
 #define LIGHTSTORM_INLINE __attribute__((always_inline)) inline
@@ -30,6 +31,11 @@ LIGHTSTORM_INLINE mrb_value ls_load_false_value(mrb_state *mrb) {
 
 LIGHTSTORM_INLINE mrb_value ls_load_string(mrb_state *mrb, const char *s, mrb_int len) {
   return mrb_str_new(mrb, s, len);
+}
+
+LIGHTSTORM_INLINE mrb_value ls_strcat(mrb_state *mrb, mrb_value str, mrb_value str2) {
+  mrb_str_concat(mrb, str, str2);
+  return str;
 }
 
 #define ls_send_0(mrb, recv, name, argc) ls_send(mrb, recv, name, argc, NULL)
