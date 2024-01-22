@@ -365,6 +365,7 @@ static void createBody(mlir::MLIRContext &context, mrb_state *mrb, mlir::func::F
       mrb_int r = MRB_ASPEC_REST(a);
       mrb_int m2 = MRB_ASPEC_POST(a);
       mrb_int kd = (MRB_ASPEC_KEY(a) > 0 || MRB_ASPEC_KDICT(a)) ? 1 : 0;
+      mrb_int block = MRB_ASPEC_BLOCK(a);
       if (o != 0) {
         frontend_error(location, "Default arguments are not supported yet");
         exit(1);
@@ -375,6 +376,10 @@ static void createBody(mlir::MLIRContext &context, mrb_state *mrb, mlir::func::F
       }
       if (kd != 0) {
         frontend_error(location, "Keyword arguments are not supported yet");
+        exit(1);
+      }
+      if (block != 0) {
+        frontend_error(location, "Block arguments are not supported yet");
         exit(1);
       }
     } break;
@@ -539,6 +544,20 @@ static void createBody(mlir::MLIRContext &context, mrb_state *mrb, mlir::func::F
       auto def = builder.create<rite::ClassOp>(
           location, mrb_value_t, state, load(regs.a), load(regs.a + 1), symbol(irep->syms[regs.b]));
       store(regs.a, def);
+    } break;
+
+    case OP_LAMBDA: {
+      regs.a = READ_B();
+      regs.b = READ_B();
+      frontend_error(location, "Lambdas are not supported");
+    } break;
+
+    case OP_BLOCK:
+    case OP_BLOCK16:
+    case OP_RETURN_BLK: {
+      regs.a = READ_B();
+      regs.b = READ_B();
+      frontend_error(location, "Blocks are not supported");
     } break;
 
     default: {
