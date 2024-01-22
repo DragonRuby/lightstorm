@@ -13,7 +13,7 @@ function(add_integration_test dir)
     DEPENDS ${host_ruby}
   )
   add_executable(${target_name} integration_test_main.c ${host_c} ${lightstorm_c})
-  target_compile_options(${target_name} PRIVATE -flto -O3)
+  target_compile_options(${target_name} PRIVATE -g)
   target_link_libraries(${target_name} PRIVATE mruby_static lightstorm_runtime)
   add_dependencies(${target_name} mruby_static)
 endfunction()

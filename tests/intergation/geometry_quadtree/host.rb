@@ -1,11 +1,13 @@
 Hash.class_eval {
-  [:x, :y, :h, :w].each do |s|
+  [:x, :y, :h, :w, :bounding_box, :rects, :top_left, :top_right, :bottom_left, :bottom_right].each do |s|
     define_method s do self[s]; end
+    s_eql = (s.to_s + '=').to_sym
+    define_method s_eql do |x| self[s] = x; end
   end
 }
 
 objects = []
-50.times do |i|
+5000.times do |i|
   r = {
     x: rand(1280),
     y: rand(720),
@@ -15,4 +17,5 @@ objects = []
   objects << r
 end
 
-puts GTK::Geometry::quadtree_bounding_box(objects)
+tree = GTK::Geometry::quadtree_create(objects)
+puts tree.size

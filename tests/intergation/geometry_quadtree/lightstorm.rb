@@ -1,6 +1,16 @@
 module GTK
   module Geometry
     class << self
+
+      def inside_rect?(inner_rect, outer_rect)
+        return false if (!inner_rect or !outer_rect)
+        return false if (inner_rect.x < outer_rect.x)
+        return false if (inner_rect.x + inner_rect.w > outer_rect.x + outer_rect.w)
+        return false if (inner_rect.y < outer_rect.y)
+        return false if (inner_rect.y + inner_rect.h > outer_rect.y + outer_rect.h)
+        true
+      end
+
       def quadtree_bounding_box rects
         return { x: 0, y: 0, w: 0, h: 0 } if !rects || rects.length == 0
         min_x = rects.first.x
