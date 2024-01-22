@@ -136,6 +136,32 @@ struct InternSymOpConversion : public LightstormConversionPattern<rite::InternSy
   }
 };
 
+struct LoadStringOpConversion : public LightstormConversionPattern<rite::LoadStringOp> {
+  explicit LoadStringOpConversion(LightstormConversionContext &conversionContext)
+      : LightstormConversionPattern(conversionContext) {}
+
+  mlir::LogicalResult matchAndRewrite(rite::LoadStringOp op, llvm::ArrayRef<mlir::Value> operands,
+                                      llvm::ArrayRef<mlir::Type> operandTypes,
+                                      mlir::Type resultType,
+                                      mlir::ConversionPatternRewriter &rewriter) const final {
+    auto charType = mlir::emitc::OpaqueType::get(getContext(), "const char");
+    auto charPtrType = mlir::emitc::PointerType::get(charType);
+    mlir::TypeRange newTypes{
+      operandTypes[0],      // mrb
+      charPtrType,          // str
+      rewriter.getI64Type() // len
+    };
+    auto str = '"' + op.getStr().str() + '"';
+    auto strAttr = mlir::emitc::OpaqueAttr::get(getContext(), str);
+    auto strVar = rewriter.create<mlir::emitc::ConstantOp>(op->getLoc(), charPtrType, strAttr);
+    mlir::ValueRange mrbInternOperands{ operands.front(), strVar, operands.back() };
+    auto func = lookupOrCreateFn(op, "ls_load_string", newTypes, resultType);
+    auto call = rewriter.create<mlir::func::CallOp>(op->getLoc(), func, mrbInternOperands);
+    rewriter.replaceOp(op, call.getResult(0));
+    return mlir::success();
+  }
+};
+
 struct ExecOpConversion : public LightstormConversionPattern<rite::ExecOp> {
   explicit ExecOpConversion(LightstormConversionContext &conversionContext)
       : LightstormConversionPattern(conversionContext) {}
@@ -288,6 +314,7 @@ void lightstorm::convertRiteToEmitC(mlir::MLIRContext &context, mlir::ModuleOp m
   patterns.add<
       ///
       lightstorm_conversion::InternSymOpConversion,
+      lightstorm_conversion::LoadStringOpConversion,
       lightstorm_conversion::ExecOpConversion,
       lightstorm_conversion::MethodOpConversion,
       lightstorm_conversion::ReturnOpConversion,

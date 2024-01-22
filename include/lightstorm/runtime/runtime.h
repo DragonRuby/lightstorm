@@ -28,6 +28,10 @@ LIGHTSTORM_INLINE mrb_value ls_load_false_value(mrb_state *mrb) {
   return mrb_false_value();
 }
 
+LIGHTSTORM_INLINE mrb_value ls_load_string(mrb_state *mrb, const char *s, mrb_int len) {
+  return mrb_str_new(mrb, s, len);
+}
+
 #define ls_send_0(mrb, recv, name, argc) ls_send(mrb, recv, name, argc, NULL)
 #define ls_send_1(mrb, recv, name, argc, ...) ls_send(mrb, recv, name, argc, __VA_ARGS__)
 #define ls_send_2(mrb, recv, name, argc, ...) ls_send(mrb, recv, name, argc, __VA_ARGS__)

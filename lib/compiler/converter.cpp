@@ -252,6 +252,20 @@ static void createBody(mlir::MLIRContext &context, mrb_state *mrb, mlir::func::F
       }
     } break;
 
+    case OP_STRING: {
+      // OPCODE(STRING,     BB)       /* R(a) = str_dup(Lit(b)) */
+      regs.a = READ_B();
+      regs.b = READ_B();
+      uint32_t len = irep->pool[regs.b].tt >> 2;
+      const char *str = irep->pool[regs.b].u.str;
+      auto ui32t = builder.getUI32IntegerAttr(0).getType();
+      auto lenCst =
+          builder.create<mlir::arith::ConstantOp>(location, builder.getI64IntegerAttr(len));
+      auto def = builder.create<rite::LoadStringOp>(
+          location, mrb_value_t, state, builder.getStringAttr(llvm::StringRef(str, len)), lenCst);
+      store(regs.a, def);
+    } break;
+
     case OP_LOADNIL:
     case OP_LOADSELF:
     case OP_LOADT:

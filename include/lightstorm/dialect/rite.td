@@ -81,6 +81,16 @@ def LoadSymOp : Rite_Op<"OP_LOADSYM"> {
   }];
 }
 
+// OPCODE(STRING,     BB)       /* R(a) = str_dup(Lit(b)) */
+def LoadStringOp : Rite_Op<"OP_STRING"> {
+  let summary = "OP_STRING";
+  let arguments = (ins StateType:$mrb, StrAttr:$str, I64:$len);
+  let results = (outs ValueType);
+  let assemblyFormat = [{
+    `(` $mrb `,` $str `,` $len `)` attr-dict `->` type(results)
+  }];
+}
+
 // OPCODE(SCLASS,     B)        /* R(a) = R(a).singleton_class */
 def SClassOp : Rite_Op<"OP_SCLASS"> {
   let summary = "OP_SCLASS";
