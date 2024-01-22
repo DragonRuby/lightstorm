@@ -61,6 +61,16 @@ def LoadIOp : Rite_Op<"OP_LOADI"> {
   }];
 }
 
+// OPCODE(LOADL,      BB)       /* R(a) = Pool(b) */
+def LoadFloatOp : Rite_Op<"OP_LOADFLOAT"> {
+  let summary = "OP_LOADFLOAT";
+  let arguments = (ins StateType:$mrb, F64:$value);
+  let results = (outs ValueType);
+  let assemblyFormat = [{
+    `(` operands `)` attr-dict `->` type(results)
+  }];
+}
+
 // OPCODE(LOADSYM,    BB)       /* R(a) = Syms(b) */
 def LoadSymOp : Rite_Op<"OP_LOADSYM"> {
   let summary = "OP_LOADSYM";

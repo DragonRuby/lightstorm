@@ -11,6 +11,10 @@ LIGHTSTORM_INLINE mrb_value ls_load_i(mrb_state *mrb, int64_t i) {
   return mrb_fixnum_value(i);
 }
 
+LIGHTSTORM_INLINE mrb_value ls_load_f(mrb_state *mrb, mrb_float v) {
+  return mrb_float_value(mrb, v);
+}
+
 LIGHTSTORM_INLINE mrb_value ls_load_nil_value(mrb_state *mrb) {
   return mrb_nil_value();
 }

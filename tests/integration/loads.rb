@@ -7,7 +7,7 @@ puts (-1_000)
 puts 1_000_000
 puts (-1_000_000)
 puts nil
-#puts 42.0
+puts 42.0
 #puts "42"
 puts true
 puts false
@@ -19,15 +19,16 @@ puts :hello
 # RUN: %t.exe | %filecheck %s %fcheck_opts
 
 # CHECK:1
-# CHECK:-1
-# CHECK:42
-# CHECK:-42
-# CHECK:1000
-# CHECK:-1000
-# CHECK:1000000
-# CHECK:-1000000
-# CHECK:
-# CHECK:true
-# CHECK:false
-# CHECK:main
-# CHECK:hello
+# CHECK-NEXT:-1
+# CHECK-NEXT:42
+# CHECK-NEXT:-42
+# CHECK-NEXT:1000
+# CHECK-NEXT:-1000
+# CHECK-NEXT:1000000
+# CHECK-NEXT:-1000000
+# CHECK-NEXT:
+# CHECK-NEXT:42.0
+# CHECK-NEXT:true
+# CHECK-NEXT:false
+# CHECK-NEXT:main
+# CHECK-NEXT:hello

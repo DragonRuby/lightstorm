@@ -220,6 +220,38 @@ static void createBody(mlir::MLIRContext &context, mrb_state *mrb, mlir::func::F
       store(regs.a, def);
     } break;
 
+    case OP_LOADL: {
+      // OPCODE(LOADL,      BB)       /* R(a) = Pool(b) */
+      regs.a = READ_B();
+      regs.b = READ_B();
+      auto poolValue = irep->pool[regs.b];
+      switch (poolValue.tt) {
+      case IREP_TT_INT32: {
+        int64_t val = poolValue.u.i32;
+        auto value =
+            builder.create<mlir::arith::ConstantOp>(location, builder.getI64IntegerAttr(val));
+        auto def = builder.create<rite::LoadIOp>(location, mrb_value_t, state, value);
+        store(regs.a, def);
+      } break;
+      case IREP_TT_INT64: {
+        int64_t val = poolValue.u.i64;
+        auto value =
+            builder.create<mlir::arith::ConstantOp>(location, builder.getI64IntegerAttr(val));
+        auto def = builder.create<rite::LoadIOp>(location, mrb_value_t, state, value);
+        store(regs.a, def);
+      } break;
+      case IREP_TT_FLOAT: {
+        auto value = builder.create<mlir::arith::ConstantOp>(
+            location, builder.getF64FloatAttr(poolValue.u.f));
+        auto def = builder.create<rite::LoadFloatOp>(location, mrb_value_t, state, value);
+        store(regs.a, def);
+      } break;
+      default:
+        llvm_unreachable("should not happen (tt:string)");
+        break;
+      }
+    } break;
+
     case OP_LOADNIL:
     case OP_LOADSELF:
     case OP_LOADT:
