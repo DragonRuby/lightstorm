@@ -554,6 +554,27 @@ static void createBody(mlir::MLIRContext &context, mrb_state *mrb, mlir::func::F
           location, mrb_value_t, state, symbol(irep->syms[regs.b]), load(regs.a));
     } break;
 
+    case OP_GETIV: {
+      // OPCODE(GETIV,      BB)       /* R(a) = ivget(Syms(b)) */
+      regs.a = READ_B();
+      regs.b = READ_B();
+      auto self = builder.create<rite::LoadValueOp>(
+          location, mrb_value_t, state, rite::LoadValueKind::self_value);
+      auto def = builder.create<rite::GetIVOp>(
+          location, mrb_value_t, state, self, symbol(irep->syms[regs.b]));
+      store(regs.a, def);
+    } break;
+
+    case OP_SETIV: {
+      // OPCODE(SETIV,      BB)       /* ivset(Syms(b),R(a)) */
+      regs.a = READ_B();
+      regs.b = READ_B();
+      auto self = builder.create<rite::LoadValueOp>(
+          location, mrb_value_t, state, rite::LoadValueKind::self_value);
+      builder.create<rite::SetIVOp>(
+          location, mrb_value_t, state, self, symbol(irep->syms[regs.b]), load(regs.a));
+    } break;
+
     case OP_CLASS: {
       // OPCODE(CLASS,      BB)       /* R(a) = newclass(R(a),Syms(b),R(a+1)) */
       regs.a = READ_B();

@@ -392,6 +392,27 @@ def SetGVOp : Rite_Op<"OP_SETGV"> {
   }];
 }
 
+// OPCODE(GETIV,      BB)       /* R(a) = ivget(Syms(b)) */
+def GetIVOp : Rite_Op<"OP_GETIV"> {
+  let summary = "OP_GETIV";
+  let arguments = (ins StateType:$mrb, ValueType:$self, UI32:$symbol);
+  let results = (outs ValueType);
+  let assemblyFormat = [{
+    `(` operands `)`attr-dict `->` type(results)
+  }];
+}
+
+// OPCODE(SETIV,      BB)       /* ivset(Syms(b),R(a)) */
+def SetIVOp : Rite_Op<"OP_SETIV"> {
+  let summary = "OP_SETIV";
+  let arguments = (ins StateType:$mrb, ValueType:$self, UI32:$symbol, ValueType:$value);
+  let results = (outs ValueType);
+  let assemblyFormat = [{
+    `(` operands `)` attr-dict
+  }];
+}
+
+
 ///
 /// Classes/Modules
 ///
