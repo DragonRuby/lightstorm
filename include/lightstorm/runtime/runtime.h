@@ -118,6 +118,14 @@ mrb_value ls_exec(mrb_state *mrb, mrb_value receiver, mrb_func_t func);
 LIGHTSTORM_INLINE mrb_value ls_get_const(mrb_state *mrb, mrb_sym sym) {
   return mrb_vm_const_get(mrb, sym);
 }
+LIGHTSTORM_INLINE mrb_value ls_get_global_variable(mrb_state *mrb, mrb_sym sym) {
+  return mrb_gv_get(mrb, sym);
+}
+
+LIGHTSTORM_INLINE mrb_value ls_set_global_variable(mrb_state *mrb, mrb_sym sym, mrb_value val) {
+  mrb_gv_set(mrb, sym, val);
+  return val;
+}
 
 mrb_value ls_vm_define_class(mrb_state *mrb, mrb_value base, mrb_value super, mrb_sym id);
 

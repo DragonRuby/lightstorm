@@ -537,6 +537,23 @@ static void createBody(mlir::MLIRContext &context, mrb_state *mrb, mlir::func::F
       store(regs.a, def);
     } break;
 
+    case OP_GETGV: {
+      // OPCODE(GETGV,      BB)       /* R(a) = getglobal(Syms(b)) */
+      regs.a = READ_B();
+      regs.b = READ_B();
+      auto def =
+          builder.create<rite::GetGVOp>(location, mrb_value_t, state, symbol(irep->syms[regs.b]));
+      store(regs.a, def);
+    } break;
+
+    case OP_SETGV: {
+      // OPCODE(SETGV,      BB)       /* setglobal(Syms(b), R(a)) */
+      regs.a = READ_B();
+      regs.b = READ_B();
+      builder.create<rite::SetGVOp>(
+          location, mrb_value_t, state, symbol(irep->syms[regs.b]), load(regs.a));
+    } break;
+
     case OP_CLASS: {
       // OPCODE(CLASS,      BB)       /* R(a) = newclass(R(a),Syms(b),R(a+1)) */
       regs.a = READ_B();

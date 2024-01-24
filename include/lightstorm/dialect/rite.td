@@ -372,6 +372,26 @@ def GetConstOp : Rite_Op<"OP_GETCONST"> {
   }];
 }
 
+// OPCODE(GETGV,      BB)       /* R(a) = getglobal(Syms(b)) */
+def GetGVOp : Rite_Op<"OP_GETGV"> {
+  let summary = "OP_GETGV";
+  let arguments = (ins StateType:$mrb, UI32:$symbol);
+  let results = (outs ValueType);
+  let assemblyFormat = [{
+    `(` operands `)` attr-dict `->` type(results)
+  }];
+}
+
+// OPCODE(SETGV,      BB)       /* setglobal(Syms(b), R(a)) */
+def SetGVOp : Rite_Op<"OP_SETGV"> {
+  let summary = "OP_SETGV";
+  let arguments = (ins StateType:$mrb, UI32:$symbol, ValueType:$value);
+  let results = (outs ValueType);
+  let assemblyFormat = [{
+    `(` operands `)` attr-dict
+  }];
+}
+
 ///
 /// Classes/Modules
 ///
