@@ -291,3 +291,31 @@ LIGHTSTORM_INLINE mrb_value ls_vm_define_class(mrb_state *mrb, mrb_value base, m
   struct RClass *c = mrb_vm_define_class(mrb, base, super, id);
   return mrb_obj_value(c);
 }
+
+LIGHTSTORM_INLINE mrb_value ls_apost(mrb_state *mrb, mrb_value array, mrb_int pre, mrb_int post) {
+  int len, idx;
+  if (!mrb_array_p(array)) {
+    array = mrb_ary_new_from_values(mrb, 1, &array);
+  }
+  mrb_value retVal = mrb_ary_new_capa(mrb, post + 1);
+  struct RArray *ary = mrb_ary_ptr(array);
+  len = (int)ARY_LEN(ary);
+  if (len > pre + post) {
+    mrb_value head = mrb_ary_new_from_values(mrb, len - pre - post, ARY_PTR(ary) + pre);
+    mrb_ary_push(mrb, retVal, head);
+    while (post--) {
+      mrb_ary_push(mrb, retVal, ARY_PTR(ary)[len - post - 1]);
+    }
+  } else {
+    mrb_value head = mrb_ary_new_capa(mrb, 0);
+    mrb_ary_push(mrb, retVal, head);
+    for (idx = 0; idx + pre < len; idx++) {
+      mrb_ary_push(mrb, retVal, ARY_PTR(ary)[pre + idx]);
+    }
+    while (idx < post) {
+      mrb_ary_push(mrb, retVal, mrb_nil_value());
+      idx++;
+    }
+  }
+  return retVal;
+}

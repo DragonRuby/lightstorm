@@ -526,6 +526,35 @@ static void createBody(mlir::MLIRContext &context, mrb_state *mrb, mlir::func::F
       store(regs.a, def);
     } break;
 
+    case OP_AREF: {
+      // OPCODE(AREF,       BBB)      /* R(a) = R(b)[c] */
+      regs.a = READ_B();
+      regs.b = READ_B();
+      regs.c = READ_B();
+      auto index = builder.create<mlir::arith::ConstantOp>(location, builder.getIndexAttr(regs.c));
+      auto def = builder.create<rite::ARefOp>(location, mrb_value_t, state, load(regs.b), index);
+      store(regs.a, def);
+    } break;
+
+    case OP_APOST: {
+      // OPCODE(APOST,      BBB)      /* *R(a),R(a+1)..R(a+c) = R(a)[b..] */
+      regs.a = READ_B();
+      regs.b = READ_B();
+      regs.c = READ_B();
+      auto pre = builder.create<mlir::arith::ConstantOp>(location, builder.getIndexAttr(regs.b));
+      auto post = builder.create<mlir::arith::ConstantOp>(location, builder.getIndexAttr(regs.c));
+      auto zero = builder.create<mlir::arith::ConstantOp>(location, builder.getIndexAttr(0));
+      auto array =
+          builder.create<rite::APostOp>(location, mrb_value_t, state, load(regs.a), pre, post);
+      for (uint32_t i = 1; i < regs.c + 1; i++) {
+        auto index = builder.create<mlir::arith::ConstantOp>(location, builder.getIndexAttr(i));
+        auto def = builder.create<rite::ARefOp>(location, mrb_value_t, state, array, index);
+        store(regs.a + i, def);
+      }
+      auto def = builder.create<rite::ARefOp>(location, mrb_value_t, state, array, zero);
+      store(regs.a, def);
+    } break;
+
     ///
     /// Hash Ops
     ///

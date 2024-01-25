@@ -344,6 +344,26 @@ def ArrayOp : Rite_Op<"OP_ARRAY"> {
   }];
 }
 
+// OPCODE(AREF,       BBB)      /* R(a) = R(b)[c] */
+def ARefOp : Rite_Op<"OP_AREF"> {
+  let summary = "OP_AREF";
+  let arguments = (ins StateType:$mrb, ValueType:$array, Index:$index);
+  let results = (outs ValueType);
+  let assemblyFormat = [{
+    `(` operands `)` attr-dict `->` type(results)
+  }];
+}
+
+// OPCODE(APOST,      BBB)      /* *R(a),R(a+1)..R(a+c) = R(a)[b..] */
+def APostOp : Rite_Op<"OP_APOST"> {
+  let summary = "OP_APOST";
+  let arguments = (ins StateType:$mrb, ValueType:$array, Index:$pre, Index:$post);
+  let results = (outs ValueType);
+  let assemblyFormat = [{
+    `(` operands `)` attr-dict `->` type(results)
+  }];
+}
+
 ///
 /// Hash Ops
 ///

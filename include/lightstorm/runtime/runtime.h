@@ -1,6 +1,7 @@
 #pragma once
 
 #include <mruby.h>
+#include <mruby/array.h>
 #include <mruby/string.h>
 #include <mruby/variable.h>
 
@@ -110,6 +111,18 @@ mrb_value ls_define_method(mrb_state *mrb, mrb_value target, mrb_value method, m
 
 mrb_value ls_array(mrb_state *mrb, mrb_int size, ...);
 mrb_value ls_hash(mrb_state *mrb, mrb_int size, ...);
+
+LIGHTSTORM_INLINE mrb_value ls_aref(mrb_state *mrb, mrb_value array, mrb_int index) {
+  if (!mrb_array_p(array)) {
+    if (index == 0) {
+      return array;
+    } else {
+      return mrb_nil_value();
+    }
+  }
+  return mrb_ary_ref(mrb, array, index);
+}
+mrb_value ls_apost(mrb_state *mrb, mrb_value array, mrb_int pre, mrb_int post);
 
 mrb_value ls_define_module(mrb_state *mrb, mrb_value target, mrb_sym sym);
 
