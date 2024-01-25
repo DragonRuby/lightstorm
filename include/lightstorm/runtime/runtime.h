@@ -137,6 +137,15 @@ LIGHTSTORM_INLINE mrb_value ls_set_instance_variable(mrb_state *mrb, mrb_value o
   mrb_iv_set(mrb, obj, sym, v);
   return v;
 }
+// class variable
+LIGHTSTORM_INLINE mrb_value ls_get_class_variable(mrb_state *mrb, mrb_sym sym) {
+  return mrb_vm_cv_get(mrb, sym);
+}
+
+LIGHTSTORM_INLINE mrb_value ls_set_class_variable(mrb_state *mrb, mrb_sym sym, mrb_value v) {
+  mrb_vm_cv_set(mrb, sym, v);
+  return v;
+}
 
 mrb_value ls_vm_define_class(mrb_state *mrb, mrb_value base, mrb_value super, mrb_sym id);
 

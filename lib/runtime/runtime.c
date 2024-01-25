@@ -172,7 +172,15 @@ LIGHTSTORM_INLINE mrb_value ls_load_target_class_value(mrb_state *mrb) {
 }
 
 LIGHTSTORM_INLINE mrb_value ls_create_method(mrb_state *mrb, mrb_func_t func) {
-  return mrb_obj_value(mrb_proc_new_cfunc(mrb, func));
+  struct RProc *proc = mrb_proc_new_cfunc(mrb, func);
+  proc->flags |= MRB_PROC_SCOPE;
+  proc->flags |= MRB_PROC_STRICT;
+  struct RClass *targetClass = mrb->c->ci->proc ? MRB_PROC_TARGET_CLASS(mrb->c->ci->proc) : NULL;
+  if (!targetClass)
+    targetClass = mrb->object_class;
+  MRB_PROC_SET_TARGET_CLASS(proc, targetClass);
+  proc->upper = mrb->c->ci->proc;
+  return mrb_obj_value(proc);
 }
 
 LIGHTSTORM_INLINE mrb_value ls_define_method(mrb_state *mrb, mrb_value target, mrb_value method,
@@ -238,7 +246,11 @@ LIGHTSTORM_INLINE mrb_value ls_exec(mrb_state *mrb, mrb_value receiver, mrb_func
   proc->flags |= MRB_PROC_SCOPE;
   proc->upper = upperProc;
   mrb_vm_ci_proc_set(mrb->c->ci, proc);
+  // Since we do not pop/push callinfo (stack frame), we need to set and restore the right `self`
+  mrb_value old_self = ls_load_self_value(mrb);
+  mrb->c->ci->stack[0] = receiver;
   mrb_value ret = func(mrb, receiver);
+  mrb->c->ci->stack[0] = old_self;
   return ret;
 }
 

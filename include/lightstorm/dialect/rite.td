@@ -388,7 +388,7 @@ def SetGVOp : Rite_Op<"OP_SETGV"> {
   let arguments = (ins StateType:$mrb, UI32:$symbol, ValueType:$value);
   let results = (outs ValueType);
   let assemblyFormat = [{
-    `(` operands `)` attr-dict
+    `(` operands `)` attr-dict `->` type(results)
   }];
 }
 
@@ -398,7 +398,7 @@ def GetIVOp : Rite_Op<"OP_GETIV"> {
   let arguments = (ins StateType:$mrb, ValueType:$self, UI32:$symbol);
   let results = (outs ValueType);
   let assemblyFormat = [{
-    `(` operands `)`attr-dict `->` type(results)
+    `(` operands `)` attr-dict `->` type(results)
   }];
 }
 
@@ -408,10 +408,29 @@ def SetIVOp : Rite_Op<"OP_SETIV"> {
   let arguments = (ins StateType:$mrb, ValueType:$self, UI32:$symbol, ValueType:$value);
   let results = (outs ValueType);
   let assemblyFormat = [{
-    `(` operands `)` attr-dict
+    `(` operands `)` attr-dict `->` type(results)
   }];
 }
 
+// OPCODE(GETCV,      BB)       /* R(a) = cvget(Syms(b)) */
+def GetCVOp : Rite_Op<"OP_GETCV"> {
+  let summary = "OP_GETCV";
+  let arguments = (ins StateType:$mrb, UI32:$symbol);
+  let results = (outs ValueType);
+  let assemblyFormat = [{
+    `(` operands `)` attr-dict `->` type(results)
+  }];
+}
+
+// OPCODE(SETCV,      BB)       /* cvset(Syms(b),R(a)) */
+def SetCVOp : Rite_Op<"OP_SETCV"> {
+  let summary = "OP_SETCV";
+  let arguments = (ins StateType:$mrb, UI32:$symbol, ValueType:$value);
+  let results = (outs ValueType);
+  let assemblyFormat = [{
+    `(` operands `)` attr-dict `->` type(results)
+  }];
+}
 
 ///
 /// Classes/Modules

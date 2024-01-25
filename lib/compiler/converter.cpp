@@ -575,6 +575,23 @@ static void createBody(mlir::MLIRContext &context, mrb_state *mrb, mlir::func::F
           location, mrb_value_t, state, self, symbol(irep->syms[regs.b]), load(regs.a));
     } break;
 
+    case OP_GETCV: {
+      // OPCODE(GETCV,      BB)       /* R(a) = cvget(Syms(b)) */
+      regs.a = READ_B();
+      regs.b = READ_B();
+      auto def =
+          builder.create<rite::GetCVOp>(location, mrb_value_t, state, symbol(irep->syms[regs.b]));
+      store(regs.a, def);
+    } break;
+
+    case OP_SETCV: {
+      // OPCODE(SETCV,      BB)       /* cvset(Syms(b),R(a)) */
+      regs.a = READ_B();
+      regs.b = READ_B();
+      builder.create<rite::SetCVOp>(
+          location, mrb_value_t, state, symbol(irep->syms[regs.b]), load(regs.a));
+    } break;
+
     case OP_CLASS: {
       // OPCODE(CLASS,      BB)       /* R(a) = newclass(R(a),Syms(b),R(a+1)) */
       regs.a = READ_B();
