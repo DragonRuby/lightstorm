@@ -347,6 +347,7 @@ void lightstorm::convertRiteToEmitC(mlir::MLIRContext &context, mlir::ModuleOp m
   DirectOpConversion(rite::SetMCNSTOp, ls_set_module_const);
   DirectOpConversion(rite::ARefOp, ls_aref);
   DirectOpConversion(rite::APostOp, ls_apost);
+  DirectOpConversion(rite::HashCatOp, ls_hash_merge);
 
   VarArgOpConversion(rite::SendOp, ls_send);
   VarArgOpConversion(rite::HashOp, ls_hash);

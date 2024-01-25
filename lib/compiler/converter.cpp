@@ -573,6 +573,14 @@ static void createBody(mlir::MLIRContext &context, mrb_state *mrb, mlir::func::F
       store(regs.a, def);
     } break;
 
+    case OP_HASHCAT: {
+      // OPCODE(HASHCAT,    B)        /* R(a) = hash_cat(R(a),R(a+1)) */
+      regs.a = READ_B();
+      auto def = builder.create<rite::HashCatOp>(
+          location, mrb_value_t, state, load(regs.a), load(regs.a + 1));
+      store(regs.a, def);
+    } break;
+
     case OP_GETCONST: {
       // OPCODE(GETCONST,   BB)       /* R(a) = constget(Syms(b)) */
       regs.a = READ_B();

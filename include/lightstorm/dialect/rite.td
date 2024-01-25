@@ -378,6 +378,16 @@ def HashOp : Rite_Op<"OP_HASH"> {
   }];
 }
 
+// OPCODE(HASHCAT,    B)        /* R(a) = hash_cat(R(a),R(a+1)) */
+def HashCatOp : Rite_Op<"OP_HASHCAT"> {
+  let summary = "OP_HASHCAT";
+  let arguments = (ins StateType:$mrb, ValueType:$h1, ValueType:$h2);
+  let results = (outs ValueType);
+  let assemblyFormat = [{
+    `(` operands `)` attr-dict `->` type(results)
+  }];
+}
+
 ///
 /// Const Ops
 ///

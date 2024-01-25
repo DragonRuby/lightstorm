@@ -319,3 +319,9 @@ LIGHTSTORM_INLINE mrb_value ls_apost(mrb_state *mrb, mrb_value array, mrb_int pr
   }
   return retVal;
 }
+
+LIGHTSTORM_INLINE mrb_value ls_hash_merge(mrb_state *mrb, mrb_value h1, mrb_value h2) {
+  mrb_ensure_hash_type(mrb, h1);
+  mrb_hash_merge(mrb, h1, h2);
+  return h1;
+}
