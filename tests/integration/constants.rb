@@ -29,6 +29,17 @@ puts A.b
 A.b = "A@@b2"
 puts A.b
 
+module M
+  VAL = "module value"
+end
+
+puts M::VAL
+M::VAL = "new module value"
+puts M::VAL
+
+CNST = "CONST value"
+puts CNST
+
 # RUN: %mruby %s | %filecheck %s %fcheck_opts
 # RUN: %t.exe | %filecheck %s %fcheck_opts
 
@@ -36,3 +47,6 @@ puts A.b
 # CHECK-NEXT:instance var
 # CHECK-NEXT:A@@b
 # CHECK-NEXT:A@@b2
+# CHECK-NEXT:module value
+# CHECK-NEXT:new module value
+# CHECK-NEXT:CONST value

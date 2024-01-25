@@ -537,6 +537,14 @@ static void createBody(mlir::MLIRContext &context, mrb_state *mrb, mlir::func::F
       store(regs.a, def);
     } break;
 
+    case OP_SETCONST: {
+      // OPCODE(SETCONST,   BB)       /* constset(Syms(b),R(a)) */
+      regs.a = READ_B();
+      regs.b = READ_B();
+      auto sym = symbol(irep->syms[regs.b]);
+      builder.create<rite::SetConstOp>(location, mrb_value_t, state, sym, load(regs.a));
+    } break;
+
     case OP_GETGV: {
       // OPCODE(GETGV,      BB)       /* R(a) = getglobal(Syms(b)) */
       regs.a = READ_B();
@@ -590,6 +598,23 @@ static void createBody(mlir::MLIRContext &context, mrb_state *mrb, mlir::func::F
       regs.b = READ_B();
       builder.create<rite::SetCVOp>(
           location, mrb_value_t, state, symbol(irep->syms[regs.b]), load(regs.a));
+    } break;
+
+    case OP_GETMCNST: {
+      // OPCODE(GETMCNST,   BB)       /* R(a) = R(a)::Syms(b) */
+      regs.a = READ_B();
+      regs.b = READ_B();
+      auto def = builder.create<rite::GetMCNSTOp>(
+          location, mrb_value_t, state, load(regs.a), symbol(irep->syms[regs.b]));
+      store(regs.a, def);
+    } break;
+
+    case OP_SETMCNST: {
+      // OPCODE(SETMCNST,   BB)       /* R(a+1)::Syms(b) = R(a) */
+      regs.a = READ_B();
+      regs.b = READ_B();
+      builder.create<rite::SetMCNSTOp>(
+          location, mrb_value_t, state, load(regs.a + 1), symbol(irep->syms[regs.b]), load(regs.a));
     } break;
 
     case OP_CLASS: {

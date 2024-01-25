@@ -372,6 +372,16 @@ def GetConstOp : Rite_Op<"OP_GETCONST"> {
   }];
 }
 
+// OPCODE(SETCONST,   BB)       /* constset(Syms(b),R(a)) */
+def SetConstOp : Rite_Op<"OP_SETCONST"> {
+  let summary = "OP_SETCONST";
+  let arguments = (ins StateType:$mrb, UI32:$symbol, ValueType:$value);
+  let results = (outs ValueType);
+  let assemblyFormat = [{
+    `(` operands `)` attr-dict `->` type(results)
+  }];
+}
+
 // OPCODE(GETGV,      BB)       /* R(a) = getglobal(Syms(b)) */
 def GetGVOp : Rite_Op<"OP_GETGV"> {
   let summary = "OP_GETGV";
@@ -426,6 +436,26 @@ def GetCVOp : Rite_Op<"OP_GETCV"> {
 def SetCVOp : Rite_Op<"OP_SETCV"> {
   let summary = "OP_SETCV";
   let arguments = (ins StateType:$mrb, UI32:$symbol, ValueType:$value);
+  let results = (outs ValueType);
+  let assemblyFormat = [{
+    `(` operands `)` attr-dict `->` type(results)
+  }];
+}
+
+// OPCODE(GETMCNST,   BB)       /* R(a) = R(a)::Syms(b) */
+def GetMCNSTOp : Rite_Op<"OP_GETMCNST"> {
+  let summary = "OP_GETMCNST";
+  let arguments = (ins StateType:$mrb, ValueType:$receiver, UI32:$symbol);
+  let results = (outs ValueType);
+  let assemblyFormat = [{
+    `(` operands `)` attr-dict `->` type(results)
+  }];
+}
+
+// OPCODE(SETMCNST,   BB)       /* R(a+1)::Syms(b) = R(a) */
+def SetMCNSTOp : Rite_Op<"OP_SETMCNST"> {
+  let summary = "OP_SETMCNST";
+  let arguments = (ins StateType:$mrb, ValueType:$receiver, UI32:$symbol, ValueType:$value);
   let results = (outs ValueType);
   let assemblyFormat = [{
     `(` operands `)` attr-dict `->` type(results)

@@ -119,6 +119,11 @@ LIGHTSTORM_INLINE mrb_value ls_get_const(mrb_state *mrb, mrb_sym sym) {
   return mrb_vm_const_get(mrb, sym);
 }
 
+LIGHTSTORM_INLINE mrb_value ls_set_const(mrb_state *mrb, mrb_sym sym, mrb_value v) {
+  mrb_vm_const_set(mrb, sym, v);
+  return v;
+}
+
 LIGHTSTORM_INLINE mrb_value ls_get_global_variable(mrb_state *mrb, mrb_sym sym) {
   return mrb_gv_get(mrb, sym);
 }
@@ -137,13 +142,23 @@ LIGHTSTORM_INLINE mrb_value ls_set_instance_variable(mrb_state *mrb, mrb_value o
   mrb_iv_set(mrb, obj, sym, v);
   return v;
 }
-// class variable
+
 LIGHTSTORM_INLINE mrb_value ls_get_class_variable(mrb_state *mrb, mrb_sym sym) {
   return mrb_vm_cv_get(mrb, sym);
 }
 
 LIGHTSTORM_INLINE mrb_value ls_set_class_variable(mrb_state *mrb, mrb_sym sym, mrb_value v) {
   mrb_vm_cv_set(mrb, sym, v);
+  return v;
+}
+
+LIGHTSTORM_INLINE mrb_value ls_get_module_const(mrb_state *mrb, mrb_value recv, mrb_sym sym) {
+  return mrb_const_get(mrb, recv, sym);
+}
+
+LIGHTSTORM_INLINE mrb_value ls_set_module_const(mrb_state *mrb, mrb_value recv, mrb_sym sym,
+                                                mrb_value v) {
+  mrb_const_set(mrb, recv, sym, v);
   return v;
 }
 
