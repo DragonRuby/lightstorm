@@ -8,29 +8,10 @@
 #include <mlir/Dialect/Func/Transforms/FuncConversions.h>
 #include <mlir/IR/BuiltinDialect.h>
 #include <mlir/IR/Verifier.h>
+#include <mlir/Pass/Pass.h>
+#include <mlir/Pass/PassManager.h>
 #include <mlir/Target/Cpp/CppEmitter.h>
 #include <mlir/Transforms/DialectConversion.h>
-
-static mlir::func::FuncOp lookupOrCreateFn(mlir::ModuleOp moduleOp, llvm::StringRef name,
-                                           mlir::TypeRange paramTypes = {},
-                                           mlir::Type resultType = {}) {
-  auto func = moduleOp.lookupSymbol<mlir::func::FuncOp>(name);
-  if (func) {
-    return func;
-  }
-  mlir::OpBuilder b(moduleOp.getBodyRegion());
-  auto type = mlir::FunctionType::get(moduleOp->getContext(), paramTypes, resultType);
-  auto f = b.create<mlir::func::FuncOp>(moduleOp->getLoc(), name, type);
-  f.setVisibility(mlir::SymbolTable::Visibility::Private);
-  return f;
-}
-
-static mlir::func::FuncOp lookupOrCreateFn(mlir::Operation *op, llvm::StringRef name,
-                                           mlir::TypeRange paramTypes = {},
-                                           mlir::Type resultType = {}) {
-  auto moduleOp = op->getParentOfType<mlir::ModuleOp>();
-  return lookupOrCreateFn(moduleOp, name, paramTypes, resultType);
-}
 
 struct LightstormConversionContext {
   mlir::MLIRContext &context;
@@ -68,6 +49,13 @@ template <typename Op> struct LightstormConversionPattern : public mlir::Convers
 
 namespace lightstorm_conversion {
 
+static auto opaqueCallOp(mlir::ConversionPatternRewriter &rewriter, mlir::Location loc,
+                         mlir::TypeRange resultType, mlir::StringRef callee,
+                         mlir::ValueRange operands) {
+  return rewriter.create<mlir::emitc::CallOpaqueOp>(
+      loc, resultType, callee, mlir::ArrayAttr{}, mlir::ArrayAttr{}, operands);
+}
+
 template <typename Op> struct DirectOpConversion : public LightstormConversionPattern<Op> {
   explicit DirectOpConversion(LightstormConversionContext &conversionContext, std::string name)
       : LightstormConversionPattern<Op>(conversionContext), name(std::move(name)) {}
@@ -76,31 +64,13 @@ template <typename Op> struct DirectOpConversion : public LightstormConversionPa
                                       llvm::ArrayRef<mlir::Type> operandTypes,
                                       mlir::Type resultType,
                                       mlir::ConversionPatternRewriter &rewriter) const final {
-    auto func = lookupOrCreateFn(op, name, operandTypes, resultType);
-    auto newOp = rewriter.create<mlir::func::CallOp>(op->getLoc(), func, operands);
+    auto newOp = opaqueCallOp(rewriter, op->getLoc(), resultType, name, operands);
     if (newOp.getNumResults()) {
       assert(newOp.getNumResults() == 1 && "Only supporting single return value");
       rewriter.replaceOp(op, newOp.getResult(0));
     } else {
       rewriter.eraseOp(op);
     }
-    return mlir::success();
-  }
-  std::string name;
-};
-
-template <typename Op> struct VarArgOpConversion : public LightstormConversionPattern<Op> {
-  explicit VarArgOpConversion(LightstormConversionContext &conversionContext, std::string name)
-      : LightstormConversionPattern<Op>(conversionContext), name(std::move(name)) {}
-
-  mlir::LogicalResult matchAndRewrite(Op op, llvm::ArrayRef<mlir::Value> operands,
-                                      llvm::ArrayRef<mlir::Type> operandTypes,
-                                      mlir::Type resultType,
-                                      mlir::ConversionPatternRewriter &rewriter) const final {
-    auto func = lookupOrCreateFn(
-        op, name + '_' + std::to_string(op.getArgv().size()), operandTypes, resultType);
-    auto newOp = rewriter.create<mlir::func::CallOp>(op->getLoc(), func, operands);
-    rewriter.replaceOp(op, newOp.getResult(0));
     return mlir::success();
   }
   std::string name;
@@ -116,12 +86,6 @@ struct InternSymOpConversion : public LightstormConversionPattern<rite::InternSy
                                       mlir::ConversionPatternRewriter &rewriter) const final {
     auto charType = mlir::emitc::OpaqueType::get(getContext(), "const char");
     auto charPtrType = mlir::emitc::PointerType::get(charType);
-    mlir::TypeRange mrbInternTypes{
-      // MRB_API mrb_sym mrb_intern(mrb_state* mrb, const char* s, size_t size);
-      operandTypes[0],      // mrb
-      charPtrType,          // s
-      rewriter.getI64Type() // size
-    };
     auto quotedSymName = '"' + op.getMidAttr().getSymname() + '"';
     auto symAttr = mlir::emitc::OpaqueAttr::get(getContext(), quotedSymName);
     auto symName = rewriter.create<mlir::emitc::ConstantOp>(op->getLoc(), charPtrType, symAttr);
@@ -129,8 +93,7 @@ struct InternSymOpConversion : public LightstormConversionPattern<rite::InternSy
     auto size =
         rewriter.create<mlir::emitc::ConstantOp>(op->getLoc(), sizeAttr.getType(), sizeAttr);
     mlir::ValueRange mrbInternOperands{ operands[0], symName, size };
-    auto mrbIntern = lookupOrCreateFn(op, "mrb_intern", mrbInternTypes, resultType);
-    auto mrbSym = rewriter.create<mlir::func::CallOp>(op->getLoc(), mrbIntern, mrbInternOperands);
+    auto mrbSym = opaqueCallOp(rewriter, op->getLoc(), resultType, "mrb_intern", mrbInternOperands);
     rewriter.replaceOp(op, mrbSym.getResult(0));
     return mlir::success();
   }
@@ -146,17 +109,11 @@ struct LoadStringOpConversion : public LightstormConversionPattern<rite::LoadStr
                                       mlir::ConversionPatternRewriter &rewriter) const final {
     auto charType = mlir::emitc::OpaqueType::get(getContext(), "const char");
     auto charPtrType = mlir::emitc::PointerType::get(charType);
-    mlir::TypeRange newTypes{
-      operandTypes[0],      // mrb
-      charPtrType,          // str
-      rewriter.getI64Type() // len
-    };
     auto str = '"' + op.getStr().str() + '"';
     auto strAttr = mlir::emitc::OpaqueAttr::get(getContext(), str);
     auto strVar = rewriter.create<mlir::emitc::ConstantOp>(op->getLoc(), charPtrType, strAttr);
-    mlir::ValueRange mrbInternOperands{ operands.front(), strVar, operands.back() };
-    auto func = lookupOrCreateFn(op, "ls_load_string", newTypes, resultType);
-    auto call = rewriter.create<mlir::func::CallOp>(op->getLoc(), func, mrbInternOperands);
+    mlir::ValueRange newOperands{ operands.front(), strVar, operands.back() };
+    auto call = opaqueCallOp(rewriter, op->getLoc(), resultType, "ls_load_string", newOperands);
     rewriter.replaceOp(op, call.getResult(0));
     return mlir::success();
   }
@@ -175,10 +132,11 @@ struct ExecOpConversion : public LightstormConversionPattern<rite::ExecOp> {
         op->getLoc(),
         mrb_func_t,
         mlir::emitc::OpaqueAttr::get(getContext(), op.getFuncAttr().getAttr()));
-    auto func = lookupOrCreateFn(
-        op, "ls_exec", { operandTypes.front(), operandTypes.back(), mrb_func_t }, resultType);
-    auto newOp = rewriter.create<mlir::func::CallOp>(
-        op->getLoc(), func, mlir::ValueRange{ operands.front(), operands.back(), ref });
+    auto newOp = opaqueCallOp(rewriter,
+                              op->getLoc(),
+                              resultType,
+                              "ls_exec",
+                              mlir::ValueRange{ operands.front(), operands.back(), ref });
     rewriter.replaceOp(op, newOp.getResult(0));
     return mlir::success();
   }
@@ -197,10 +155,11 @@ struct MethodOpConversion : public LightstormConversionPattern<rite::MethodOp> {
         op->getLoc(),
         mrb_func_t,
         mlir::emitc::OpaqueAttr::get(getContext(), op.getMethodAttr().getAttr()));
-    auto func =
-        lookupOrCreateFn(op, "ls_create_method", { operandTypes.front(), mrb_func_t }, resultType);
-    auto newOp = rewriter.create<mlir::func::CallOp>(
-        op->getLoc(), func, mlir::ValueRange{ operands.front(), ref });
+    auto newOp = opaqueCallOp(rewriter,
+                              op->getLoc(),
+                              resultType,
+                              "ls_create_method",
+                              mlir::ValueRange{ operands.front(), ref });
     rewriter.replaceOp(op, newOp.getResult(0));
     return mlir::success();
   }
@@ -247,8 +206,7 @@ template <typename Op> struct KindOpConversion : public LightstormConversionPatt
                                       llvm::ArrayRef<mlir::Type> operandTypes,
                                       mlir::Type resultType,
                                       mlir::ConversionPatternRewriter &rewriter) const final {
-    auto func = lookupOrCreateFn(op, kindName(op.getKind()), operandTypes, resultType);
-    auto newOp = rewriter.create<mlir::func::CallOp>(op->getLoc(), func, operands);
+    auto newOp = opaqueCallOp(rewriter, op->getLoc(), resultType, kindName(op.getKind()), operands);
     rewriter.replaceOp(op, newOp.getResult(0));
     return mlir::success();
   }
@@ -258,10 +216,6 @@ template <typename Op> struct KindOpConversion : public LightstormConversionPatt
 
 #define DirectOpConversion(Op, function)                                                           \
   patterns.add<lightstorm_conversion::DirectOpConversion<Op>>(loweringContext,                     \
-                                                              std::string("" #function))
-
-#define VarArgOpConversion(Op, function)                                                           \
-  patterns.add<lightstorm_conversion::VarArgOpConversion<Op>>(loweringContext,                     \
                                                               std::string("" #function))
 
 void lightstorm::convertRiteToEmitC(mlir::MLIRContext &context, mlir::ModuleOp module) {
@@ -348,37 +302,25 @@ void lightstorm::convertRiteToEmitC(mlir::MLIRContext &context, mlir::ModuleOp m
   DirectOpConversion(rite::ARefOp, ls_aref);
   DirectOpConversion(rite::APostOp, ls_apost);
   DirectOpConversion(rite::HashCatOp, ls_hash_merge);
-
-  VarArgOpConversion(rite::SendOp, ls_send);
-  VarArgOpConversion(rite::HashOp, ls_hash);
-  VarArgOpConversion(rite::ArrayOp, ls_array);
+  DirectOpConversion(rite::SendOp, ls_send);
+  DirectOpConversion(rite::HashOp, ls_hash);
+  DirectOpConversion(rite::ArrayOp, ls_array);
 
   mlir::FrozenRewritePatternSet frozenPatterns(std::move(patterns));
   if (mlir::failed(mlir::applyFullConversion(module.getOperation(), target, frozenPatterns))) {
     module.getOperation()->print(llvm::errs(), mlir::OpPrintingFlags().enableDebugInfo(true, true));
     llvm::errs() << "Cannot apply C conversion\n";
     exit(1);
-    return;
   }
   if (mlir::failed(mlir::verify(module))) {
     llvm::errs() << "Invalid module after C conversion\n";
     module.print(llvm::errs(), mlir::OpPrintingFlags().enableDebugInfo(true, true));
     exit(1);
-    return;
   }
 }
 
 void lightstorm::convertMLIRToC(mlir::MLIRContext &context, mlir::ModuleOp module,
                                 llvm::raw_ostream &out) {
-  // EmitC emits empty function bodies even for private declarations, remove those right before
-  // conversion
-  std::vector<mlir::func::FuncOp> toRemove;
-  auto ops = module.getOps<mlir::func::FuncOp>();
-  std::copy_if(ops.begin(), ops.end(), std::back_inserter(toRemove), [&](auto op) {
-    return op.isDeclaration();
-  });
-  std::for_each(toRemove.begin(), toRemove.end(), [&](auto &op) { op->remove(); });
-
   mlir::OpBuilder b(module.getBodyRegion());
   b.create<mlir::emitc::IncludeOp>(module->getLoc(), "lightstorm/runtime/runtime.h");
 

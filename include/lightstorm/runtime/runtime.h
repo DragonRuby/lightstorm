@@ -39,40 +39,7 @@ LIGHTSTORM_INLINE mrb_value ls_strcat(mrb_state *mrb, mrb_value str, mrb_value s
   return str;
 }
 
-#define ls_send_0(mrb, recv, name, argc) ls_send(mrb, recv, name, argc, NULL)
-#define ls_send_1(mrb, recv, name, argc, ...) ls_send(mrb, recv, name, argc, __VA_ARGS__)
-#define ls_send_2(mrb, recv, name, argc, ...) ls_send(mrb, recv, name, argc, __VA_ARGS__)
-#define ls_send_3(mrb, recv, name, argc, ...) ls_send(mrb, recv, name, argc, __VA_ARGS__)
-#define ls_send_4(mrb, recv, name, argc, ...) ls_send(mrb, recv, name, argc, __VA_ARGS__)
-#define ls_send_5(mrb, recv, name, argc, ...) ls_send(mrb, recv, name, argc, __VA_ARGS__)
-#define ls_send_6(mrb, recv, name, argc, ...) ls_send(mrb, recv, name, argc, __VA_ARGS__)
-#define ls_send_7(mrb, recv, name, argc, ...) ls_send(mrb, recv, name, argc, __VA_ARGS__)
-#define ls_send_8(mrb, recv, name, argc, ...) ls_send(mrb, recv, name, argc, __VA_ARGS__)
-#define ls_send_9(mrb, recv, name, argc, ...) ls_send(mrb, recv, name, argc, __VA_ARGS__)
-
 mrb_value ls_send(mrb_state *mrb, mrb_value recv, mrb_sym name, mrb_int argc, ...);
-
-#define ls_hash_0(mrb, size) ls_hash(mrb, size, NULL)
-#define ls_hash_1(mrb, size, ...) ls_hash(mrb, size, __VA_ARGS__)
-#define ls_hash_2(mrb, size, ...) ls_hash(mrb, size, __VA_ARGS__)
-#define ls_hash_3(mrb, size, ...) ls_hash(mrb, size, __VA_ARGS__)
-#define ls_hash_4(mrb, size, ...) ls_hash(mrb, size, __VA_ARGS__)
-#define ls_hash_5(mrb, size, ...) ls_hash(mrb, size, __VA_ARGS__)
-#define ls_hash_6(mrb, size, ...) ls_hash(mrb, size, __VA_ARGS__)
-#define ls_hash_7(mrb, size, ...) ls_hash(mrb, size, __VA_ARGS__)
-#define ls_hash_8(mrb, size, ...) ls_hash(mrb, size, __VA_ARGS__)
-#define ls_hash_9(mrb, size, ...) ls_hash(mrb, size, __VA_ARGS__)
-
-#define ls_array_0(mrb, size) ls_array(mrb, size, NULL)
-#define ls_array_1(mrb, size, ...) ls_array(mrb, size, __VA_ARGS__)
-#define ls_array_2(mrb, size, ...) ls_array(mrb, size, __VA_ARGS__)
-#define ls_array_3(mrb, size, ...) ls_array(mrb, size, __VA_ARGS__)
-#define ls_array_4(mrb, size, ...) ls_array(mrb, size, __VA_ARGS__)
-#define ls_array_5(mrb, size, ...) ls_array(mrb, size, __VA_ARGS__)
-#define ls_array_6(mrb, size, ...) ls_array(mrb, size, __VA_ARGS__)
-#define ls_array_7(mrb, size, ...) ls_array(mrb, size, __VA_ARGS__)
-#define ls_array_8(mrb, size, ...) ls_array(mrb, size, __VA_ARGS__)
-#define ls_array_9(mrb, size, ...) ls_array(mrb, size, __VA_ARGS__)
 
 mrb_value ls_compare_gt(mrb_state *mrb, mrb_value lhs, mrb_value rhs);
 mrb_value ls_compare_ge(mrb_state *mrb, mrb_value lhs, mrb_value rhs);
