@@ -60,6 +60,11 @@ static void populatePrototypes(mlir::MLIRContext &context,
 
 static void frontend_error(mlir::FileLineColLoc &location, std::string_view msg) {
   llvm::errs() << location.getFilename().str() << ":" << location.getLine() << ": " << msg << "\n";
+  exit(1);
+}
+
+static void frontend_warning(mlir::FileLineColLoc &location, std::string_view msg) {
+  llvm::errs() << location.getFilename().str() << ":" << location.getLine() << ": " << msg << "\n";
 }
 
 static void createBody(mlir::MLIRContext &context, mrb_state *mrb, mlir::func::FuncOp func,
@@ -767,6 +772,38 @@ static void createBody(mlir::MLIRContext &context, mrb_state *mrb, mlir::func::F
     case OP_RAISEIF: {
       regs.a = READ_B();
       frontend_error(location, "Exceptions are not supported");
+    } break;
+
+    case OP_BLKPUSH: {
+      regs.a = READ_B();
+      regs.b = READ_S();
+      frontend_error(location, "`yield` is not supported");
+    } break;
+
+    case OP_GETUPVAR:
+    case OP_SETUPVAR: {
+      // These could only appear within a block
+      regs.a = READ_B();
+      regs.b = READ_B();
+      regs.c = READ_B();
+      frontend_error(location, "Blocks are not supported");
+    } break;
+
+    case OP_BREAK: {
+      // This could only appear within a block
+      regs.a = READ_B();
+      frontend_error(location, "Blocks are not supported");
+    } break;
+
+    case OP_CALL: {
+      frontend_error(location, "Unexpected OP_CALL");
+    } break;
+
+    case OP_DEBUG: {
+      regs.a = READ_B();
+      regs.b = READ_B();
+      regs.c = READ_B();
+      frontend_warning(location, "Skipping OP_DEBUG");
     } break;
 
     default: {
