@@ -525,3 +525,27 @@ def ClassOp : Rite_Op<"OP_CLASS"> {
     `(` operands `)` attr-dict `->` type(results)
   }];
 }
+
+///
+/// Ranges
+///
+
+// OPCODE(RANGE_INC,  B)        /* R(a) = range_new(R(a),R(a+1),FALSE) */
+def RangeIncOp : Rite_Op<"OP_RANGE_INC"> {
+  let summary = "OP_RANGE_INC";
+  let arguments = (ins StateType:$mrb, ValueType:$rbegin, ValueType:$rend);
+  let results = (outs ValueType);
+  let assemblyFormat = [{
+    `(` operands `)` attr-dict `->` type(results)
+  }];
+}
+
+// OPCODE(RANGE_EXC,  B)        /* R(a) = range_new(R(a),R(a+1),TRUE) */
+def RangeExcOp : Rite_Op<"OP_RANGE_EXC"> {
+  let summary = "OP_RANGE_EXC";
+  let arguments = (ins StateType:$mrb, ValueType:$rbegin, ValueType:$rend);
+  let results = (outs ValueType);
+  let assemblyFormat = [{
+    `(` operands `)` attr-dict `->` type(results)
+  }];
+}

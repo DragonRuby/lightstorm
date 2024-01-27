@@ -694,6 +694,22 @@ static void createBody(mlir::MLIRContext &context, mrb_state *mrb, mlir::func::F
       store(regs.a, def);
     } break;
 
+    case OP_RANGE_INC: {
+      // OPCODE(RANGE_INC,  B)        /* R(a) = range_new(R(a),R(a+1),FALSE) */
+      regs.a = READ_B();
+      auto def = builder.create<rite::RangeIncOp>(
+          location, mrb_value_t, state, load(regs.a), load(regs.a + 1));
+      store(regs.a, def);
+    } break;
+
+    case OP_RANGE_EXC: {
+      // OPCODE(RANGE_EXC,  B)        /* R(a) = range_new(R(a),R(a+1),TRUE) */
+      regs.a = READ_B();
+      auto def = builder.create<rite::RangeExcOp>(
+          location, mrb_value_t, state, load(regs.a), load(regs.a + 1));
+      store(regs.a, def);
+    } break;
+
     case OP_LAMBDA: {
       regs.a = READ_B();
       regs.b = READ_B();

@@ -2,6 +2,7 @@
 
 #include <mruby.h>
 #include <mruby/array.h>
+#include <mruby/range.h>
 #include <mruby/string.h>
 #include <mruby/variable.h>
 
@@ -153,6 +154,13 @@ LIGHTSTORM_INLINE mrb_value ls_set_module_const(mrb_state *mrb, mrb_value recv, 
                                                 mrb_value v) {
   mrb_const_set(mrb, recv, sym, v);
   return v;
+}
+
+LIGHTSTORM_INLINE mrb_value ls_range_inc(mrb_state *mrb, mrb_value start, mrb_value end) {
+  return mrb_range_new(mrb, start, end, 0);
+}
+LIGHTSTORM_INLINE mrb_value ls_range_exc(mrb_state *mrb, mrb_value start, mrb_value end) {
+  return mrb_range_new(mrb, start, end, 1);
 }
 
 mrb_value ls_vm_define_class(mrb_state *mrb, mrb_value base, mrb_value super, mrb_sym id);
