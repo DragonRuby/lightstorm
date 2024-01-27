@@ -2,6 +2,7 @@
 
 #include <mruby.h>
 #include <mruby/array.h>
+#include <mruby/class.h>
 #include <mruby/range.h>
 #include <mruby/string.h>
 #include <mruby/variable.h>
@@ -164,6 +165,17 @@ LIGHTSTORM_INLINE mrb_value ls_range_exc(mrb_state *mrb, mrb_value start, mrb_va
 }
 
 mrb_value ls_vm_define_class(mrb_state *mrb, mrb_value base, mrb_value super, mrb_sym id);
+LIGHTSTORM_INLINE mrb_value ls_alias_method(mrb_state *mrb, mrb_sym a, mrb_sym b) {
+  struct RClass *target = mrb_class_ptr(ls_load_target_class_value(mrb));
+  mrb_alias_method(mrb, target, a, b);
+  return mrb_nil_value();
+}
+
+LIGHTSTORM_INLINE mrb_value ls_undef_method(mrb_state *mrb, mrb_sym sym) {
+  struct RClass *target = mrb_class_ptr(ls_load_target_class_value(mrb));
+  mrb_undef_method_id(mrb, target, sym);
+  return mrb_nil_value();
+}
 
 // Temporary prototypes
 static mrb_value _irep_0(mrb_state *, mrb_value);

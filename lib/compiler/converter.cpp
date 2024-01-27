@@ -421,6 +421,20 @@ static void createBody(mlir::MLIRContext &context, mrb_state *mrb, mlir::func::F
           location, mrb_value_t, state, load(regs.a), load(regs.a + 1), mid);
     } break;
 
+    case OP_ALIAS: {
+      // OPCODE(ALIAS,      BB)       /* alias_method(target_class,Syms(a),Syms(b)) */
+      regs.a = READ_B();
+      regs.b = READ_B();
+      builder.create<rite::AliasOp>(
+          location, mrb_value_t, state, symbol(irep->syms[regs.a]), symbol(irep->syms[regs.b]));
+    } break;
+
+    case OP_UNDEF: {
+      // OPCODE(UNDEF,      B)        /* undef_method(target_class,Syms(a)) */
+      regs.a = READ_B();
+      builder.create<rite::UndefOp>(location, mrb_value_t, state, symbol(irep->syms[regs.a]));
+    } break;
+
     case OP_EQ:
     case OP_LT:
     case OP_LE:

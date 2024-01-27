@@ -526,6 +526,26 @@ def ClassOp : Rite_Op<"OP_CLASS"> {
   }];
 }
 
+// OPCODE(ALIAS,      BB)       /* alias_method(target_class,Syms(a),Syms(b)) */
+def AliasOp : Rite_Op<"OP_ALIAS"> {
+  let summary = "OP_ALIAS";
+  let arguments = (ins StateType:$mrb, SymType:$sym1, SymType:$sym2);
+  let results = (outs ValueType);
+  let assemblyFormat = [{
+    `(` operands `)` attr-dict `->` type(results)
+  }];
+}
+
+// OPCODE(UNDEF,      B)        /* undef_method(target_class,Syms(a)) */
+def UndefOp : Rite_Op<"OP_UNDEF"> {
+  let summary = "OP_UNDEF";
+  let arguments = (ins StateType:$mrb, SymType:$sym);
+  let results = (outs ValueType);
+  let assemblyFormat = [{
+    `(` operands `)` attr-dict `->` type(results)
+  }];
+}
+
 ///
 /// Ranges
 ///
