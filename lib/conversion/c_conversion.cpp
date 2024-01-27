@@ -238,6 +238,9 @@ void lightstorm::convertRiteToEmitC(mlir::MLIRContext &context, mlir::ModuleOp m
     if (type.isa<rite::mrb_valueType>()) {
       return mlir::emitc::OpaqueType::get(&context, "mrb_value");
     }
+    if (type.isa<rite::mrb_symType>()) {
+      return mlir::emitc::OpaqueType::get(&context, "mrb_sym");
+    }
     if (type.isa<rite::mrb_stateType>()) {
       auto opaque = mlir::emitc::OpaqueType::get(&context, "mrb_state");
       return mlir::emitc::PointerType::get(opaque);

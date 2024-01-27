@@ -21,6 +21,7 @@ class RiteType<string name> : TypeDef<Rite_Dialect, name> {
 def StateType : RiteType<"mrb_state"> {}
 def ValueType : RiteType<"mrb_value"> {}
 def ValuePtrType : RiteType<"mrb_value_ptr"> {}
+def SymType : RiteType<"mrb_sym"> {}
 
 class Rite_Attr<string name, string attrMnemonic, list<Trait> traits = []>
     : AttrDef<Rite_Dialect, name, traits> {
@@ -74,7 +75,7 @@ def LoadFloatOp : Rite_Op<"OP_LOADFLOAT"> {
 // OPCODE(LOADSYM,    BB)       /* R(a) = Syms(b) */
 def LoadSymOp : Rite_Op<"OP_LOADSYM"> {
   let summary = "OP_LOADSYM";
-  let arguments = (ins StateType:$mrb, UI32:$mid);
+  let arguments = (ins StateType:$mrb, SymType:$mid);
   let results = (outs ValueType);
   let assemblyFormat = [{
     `(` operands `)` attr-dict `->` type(results)
@@ -181,7 +182,7 @@ def CmpOp : Rite_Op<"cmp"> {
 def InternSymOp : Rite_Op<"intern_symbol"> {
   let summary = "Converts string symbol into a numerical value";
   let arguments = (ins StateType:$mrb, SymAttr:$mid);
-  let results = (outs UI32);
+  let results = (outs SymType);
   let assemblyFormat = [{
     `(` $mrb `,` $mid `)` attr-dict `->` type(results)
   }];
@@ -190,7 +191,7 @@ def InternSymOp : Rite_Op<"intern_symbol"> {
 // OPCODE(MODULE,     BB)       /* R(a) = newmodule(R(a),Syms(b)) */
 def ModuleOp : Rite_Op<"OP_MODULE"> {
   let summary = "OP_MODULE";
-  let arguments = (ins StateType:$mrb, ValueType:$target, UI32:$symbol);
+  let arguments = (ins StateType:$mrb, ValueType:$target, SymType:$symbol);
   let results = (outs ValueType);
   let assemblyFormat = [{
     `(` operands `)` attr-dict `->` type(results)
@@ -210,7 +211,7 @@ def MethodOp : Rite_Op<"OP_METHOD"> {
 // OPCODE(DEF,        BB)       /* R(a).newmethod(Syms(b),R(a+1)) */
 def DefOp : Rite_Op<"OP_DEF"> {
   let summary = "OP_DEF";
-  let arguments = (ins StateType:$mrb, ValueType:$target, ValueType:$method, UI32:$mid);
+  let arguments = (ins StateType:$mrb, ValueType:$target, ValueType:$method, SymType:$mid);
   let results = (outs ValueType);
   let assemblyFormat = [{
     `(` operands `)` attr-dict
@@ -220,7 +221,7 @@ def DefOp : Rite_Op<"OP_DEF"> {
 // OPCODE(SEND,       BBB)      /* R(a) = call(R(a),Syms(b),R(a+1),...,R(a+c)) */
 def SendOp : Rite_Op<"OP_SEND"> {
   let summary = "OP_SEND";
-  let arguments = (ins StateType:$mrb, ValueType:$receiver, UI32:$symbol, I64:$argc, Variadic<ValueType>:$argv);
+  let arguments = (ins StateType:$mrb, ValueType:$receiver, SymType:$symbol, I64:$argc, Variadic<ValueType>:$argv);
   let results = (outs ValueType);
   let assemblyFormat = [{
     `(` operands `,` type($argv) `)` attr-dict `->` type(results)
@@ -395,7 +396,7 @@ def HashCatOp : Rite_Op<"OP_HASHCAT"> {
 // OPCODE(GETCONST,   BB)       /* R(a) = constget(Syms(b)) */
 def GetConstOp : Rite_Op<"OP_GETCONST"> {
   let summary = "OP_GETCONST";
-  let arguments = (ins StateType:$mrb, UI32:$symbol);
+  let arguments = (ins StateType:$mrb, SymType:$symbol);
   let results = (outs ValueType);
   let assemblyFormat = [{
     `(` operands `)` attr-dict `->` type(results)
@@ -405,7 +406,7 @@ def GetConstOp : Rite_Op<"OP_GETCONST"> {
 // OPCODE(SETCONST,   BB)       /* constset(Syms(b),R(a)) */
 def SetConstOp : Rite_Op<"OP_SETCONST"> {
   let summary = "OP_SETCONST";
-  let arguments = (ins StateType:$mrb, UI32:$symbol, ValueType:$value);
+  let arguments = (ins StateType:$mrb, SymType:$symbol, ValueType:$value);
   let results = (outs ValueType);
   let assemblyFormat = [{
     `(` operands `)` attr-dict `->` type(results)
@@ -415,7 +416,7 @@ def SetConstOp : Rite_Op<"OP_SETCONST"> {
 // OPCODE(GETGV,      BB)       /* R(a) = getglobal(Syms(b)) */
 def GetGVOp : Rite_Op<"OP_GETGV"> {
   let summary = "OP_GETGV";
-  let arguments = (ins StateType:$mrb, UI32:$symbol);
+  let arguments = (ins StateType:$mrb, SymType:$symbol);
   let results = (outs ValueType);
   let assemblyFormat = [{
     `(` operands `)` attr-dict `->` type(results)
@@ -425,7 +426,7 @@ def GetGVOp : Rite_Op<"OP_GETGV"> {
 // OPCODE(SETGV,      BB)       /* setglobal(Syms(b), R(a)) */
 def SetGVOp : Rite_Op<"OP_SETGV"> {
   let summary = "OP_SETGV";
-  let arguments = (ins StateType:$mrb, UI32:$symbol, ValueType:$value);
+  let arguments = (ins StateType:$mrb, SymType:$symbol, ValueType:$value);
   let results = (outs ValueType);
   let assemblyFormat = [{
     `(` operands `)` attr-dict `->` type(results)
@@ -435,7 +436,7 @@ def SetGVOp : Rite_Op<"OP_SETGV"> {
 // OPCODE(GETIV,      BB)       /* R(a) = ivget(Syms(b)) */
 def GetIVOp : Rite_Op<"OP_GETIV"> {
   let summary = "OP_GETIV";
-  let arguments = (ins StateType:$mrb, ValueType:$self, UI32:$symbol);
+  let arguments = (ins StateType:$mrb, ValueType:$self, SymType:$symbol);
   let results = (outs ValueType);
   let assemblyFormat = [{
     `(` operands `)` attr-dict `->` type(results)
@@ -445,7 +446,7 @@ def GetIVOp : Rite_Op<"OP_GETIV"> {
 // OPCODE(SETIV,      BB)       /* ivset(Syms(b),R(a)) */
 def SetIVOp : Rite_Op<"OP_SETIV"> {
   let summary = "OP_SETIV";
-  let arguments = (ins StateType:$mrb, ValueType:$self, UI32:$symbol, ValueType:$value);
+  let arguments = (ins StateType:$mrb, ValueType:$self, SymType:$symbol, ValueType:$value);
   let results = (outs ValueType);
   let assemblyFormat = [{
     `(` operands `)` attr-dict `->` type(results)
@@ -455,7 +456,7 @@ def SetIVOp : Rite_Op<"OP_SETIV"> {
 // OPCODE(GETCV,      BB)       /* R(a) = cvget(Syms(b)) */
 def GetCVOp : Rite_Op<"OP_GETCV"> {
   let summary = "OP_GETCV";
-  let arguments = (ins StateType:$mrb, UI32:$symbol);
+  let arguments = (ins StateType:$mrb, SymType:$symbol);
   let results = (outs ValueType);
   let assemblyFormat = [{
     `(` operands `)` attr-dict `->` type(results)
@@ -465,7 +466,7 @@ def GetCVOp : Rite_Op<"OP_GETCV"> {
 // OPCODE(SETCV,      BB)       /* cvset(Syms(b),R(a)) */
 def SetCVOp : Rite_Op<"OP_SETCV"> {
   let summary = "OP_SETCV";
-  let arguments = (ins StateType:$mrb, UI32:$symbol, ValueType:$value);
+  let arguments = (ins StateType:$mrb, SymType:$symbol, ValueType:$value);
   let results = (outs ValueType);
   let assemblyFormat = [{
     `(` operands `)` attr-dict `->` type(results)
@@ -475,7 +476,7 @@ def SetCVOp : Rite_Op<"OP_SETCV"> {
 // OPCODE(GETMCNST,   BB)       /* R(a) = R(a)::Syms(b) */
 def GetMCNSTOp : Rite_Op<"OP_GETMCNST"> {
   let summary = "OP_GETMCNST";
-  let arguments = (ins StateType:$mrb, ValueType:$receiver, UI32:$symbol);
+  let arguments = (ins StateType:$mrb, ValueType:$receiver, SymType:$symbol);
   let results = (outs ValueType);
   let assemblyFormat = [{
     `(` operands `)` attr-dict `->` type(results)
@@ -485,7 +486,7 @@ def GetMCNSTOp : Rite_Op<"OP_GETMCNST"> {
 // OPCODE(SETMCNST,   BB)       /* R(a+1)::Syms(b) = R(a) */
 def SetMCNSTOp : Rite_Op<"OP_SETMCNST"> {
   let summary = "OP_SETMCNST";
-  let arguments = (ins StateType:$mrb, ValueType:$receiver, UI32:$symbol, ValueType:$value);
+  let arguments = (ins StateType:$mrb, ValueType:$receiver, SymType:$symbol, ValueType:$value);
   let results = (outs ValueType);
   let assemblyFormat = [{
     `(` operands `)` attr-dict `->` type(results)
@@ -498,7 +499,7 @@ def SetMCNSTOp : Rite_Op<"OP_SETMCNST"> {
 
 def ClassOp : Rite_Op<"OP_CLASS"> {
   let summary = "OP_CLASS";
-  let arguments = (ins StateType:$mrb, ValueType:$base_class, ValueType:$super_class, UI32:$symbol);
+  let arguments = (ins StateType:$mrb, ValueType:$base_class, ValueType:$super_class, SymType:$symbol);
   let results = (outs ValueType);
   let assemblyFormat = [{
     `(` operands `)` attr-dict `->` type(results)

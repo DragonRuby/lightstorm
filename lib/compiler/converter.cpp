@@ -142,8 +142,8 @@ static void createBody(mlir::MLIRContext &context, mrb_state *mrb, mlir::func::F
 
     auto symbol = [&](mrb_sym sym) {
       auto attr = rite::mrb_symAttr::get(&context, mrb_sym_name(mrb, sym));
-      auto ui32t = builder.getUI32IntegerAttr(0).getType();
-      return builder.create<rite::InternSymOp>(location, ui32t, state, attr);
+      auto symType = rite::mrb_symType::get(&context);
+      return builder.create<rite::InternSymOp>(location, symType, state, attr);
     };
 
     Regs regs{};
