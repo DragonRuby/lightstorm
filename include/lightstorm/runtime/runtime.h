@@ -91,6 +91,18 @@ LIGHTSTORM_INLINE mrb_value ls_aref(mrb_state *mrb, mrb_value array, mrb_int ind
   return mrb_ary_ref(mrb, array, index);
 }
 mrb_value ls_apost(mrb_state *mrb, mrb_value array, mrb_int pre, mrb_int post);
+LIGHTSTORM_INLINE mrb_value ls_array_push(mrb_state *mrb, mrb_value array, mrb_value v) {
+  mrb_ary_push(mrb, array, v);
+  return array;
+}
+LIGHTSTORM_INLINE mrb_value ls_array_cat(mrb_state *mrb, mrb_value self, mrb_value other) {
+  mrb_value splat = mrb_ary_splat(mrb, other);
+  if (mrb_nil_p(self)) {
+    return splat;
+  }
+  mrb_ary_concat(mrb, self, splat);
+  return self;
+}
 
 mrb_value ls_define_module(mrb_state *mrb, mrb_value target, mrb_sym sym);
 

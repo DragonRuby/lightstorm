@@ -365,6 +365,26 @@ def APostOp : Rite_Op<"OP_APOST"> {
   }];
 }
 
+// OPCODE(ARYPUSH,    B)        /* ary_push(R(a),R(a+1)) */
+def ArrayPushOp : Rite_Op<"OP_ARYPUSH"> {
+  let summary = "OP_ARYPUSH";
+  let arguments = (ins StateType:$mrb, ValueType:$array, ValueType:$value);
+  let results = (outs ValueType);
+  let assemblyFormat = [{
+    `(` operands `)` attr-dict `->` type(results)
+  }];
+}
+
+// OPCODE(ARYCAT,     B)        /* ary_cat(R(a),R(a+1)) */
+def ArrayCatOp : Rite_Op<"OP_ARYCAT"> {
+  let summary = "OP_ARYCAT";
+  let arguments = (ins StateType:$mrb, ValueType:$lhs, ValueType:$rhs);
+  let results = (outs ValueType);
+  let assemblyFormat = [{
+    `(` operands `)` attr-dict `->` type(results)
+  }];
+}
+
 ///
 /// Hash Ops
 ///

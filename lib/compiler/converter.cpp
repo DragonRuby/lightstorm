@@ -555,6 +555,21 @@ static void createBody(mlir::MLIRContext &context, mrb_state *mrb, mlir::func::F
       store(regs.a, def);
     } break;
 
+    case OP_ARYPUSH: {
+      // OPCODE(ARYPUSH,    B)        /* ary_push(R(a),R(a+1)) */
+      regs.a = READ_B();
+      builder.create<rite::ArrayPushOp>(
+          location, mrb_value_t, state, load(regs.a), load(regs.a + 1));
+    } break;
+
+    case OP_ARYCAT: {
+      // OPCODE(ARYCAT,     B)        /* ary_cat(R(a),R(a+1)) */
+      regs.a = READ_B();
+      auto def = builder.create<rite::ArrayCatOp>(
+          location, mrb_value_t, state, load(regs.a), load(regs.a + 1));
+      store(regs.a, def);
+    } break;
+
     ///
     /// Hash Ops
     ///
