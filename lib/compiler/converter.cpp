@@ -284,7 +284,7 @@ static void createBody(mlir::MLIRContext &context, mrb_state *mrb, mlir::func::F
     case OP_INTERN: {
       // OPCODE(INTERN,     B)        /* R(a) = intern(R(a)) */
       regs.a = READ_B();
-      auto def = builder.create<rite::InternOp>(location, mrb_value_t, state, load( regs.a ));
+      auto def = builder.create<rite::InternOp>(location, mrb_value_t, state, load(regs.a));
       store(regs.a, def);
     } break;
 
@@ -362,6 +362,16 @@ static void createBody(mlir::MLIRContext &context, mrb_state *mrb, mlir::func::F
           builder.create<mlir::arith::ConstantOp>(location, builder.getI64IntegerAttr(regs.c));
       auto def =
           builder.create<rite::SendOp>(location, mrb_value_t, state, load(regs.a), mid, argc, argv);
+      store(regs.a, def);
+    } break;
+
+    case OP_SENDV: {
+      // TODO: Handle max_args
+      // OPCODE(SENDV,      BB)       /* R(a) = call(R(a),Syms(b),*R(a+1)) */
+      regs.a = READ_B();
+      regs.b = READ_B();
+      auto def = builder.create<rite::SendVOp>(
+          location, mrb_value_t, state, load(regs.a), symbol(irep->syms[regs.b]), load(regs.a + 1));
       store(regs.a, def);
     } break;
 
@@ -916,6 +926,11 @@ static void createBody(mlir::MLIRContext &context, mrb_state *mrb, mlir::func::F
       regs.b = READ_B();
       regs.c = READ_B();
       frontend_error(location, "OP_ASET is not implemented yet");
+    } break;
+
+    case OP_ARYDUP: {
+      regs.a = READ_B();
+      frontend_error(location, "OP_ARYDUP is not implemented yet");
     } break;
 
     default: {

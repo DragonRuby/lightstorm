@@ -241,6 +241,16 @@ def SendOp : Rite_Op<"OP_SEND"> {
   }];
 }
 
+// OPCODE(SENDV,      BB)       /* R(a) = call(R(a),Syms(b),*R(a+1)) */
+def SendVOp : Rite_Op<"OP_SENDV"> {
+  let summary = "OP_SENDV";
+  let arguments = (ins StateType:$mrb, ValueType:$receiver, SymType:$symbol, ValueType:$argv);
+  let results = (outs ValueType);
+  let assemblyFormat = [{
+    `(` operands `)` attr-dict `->` type(results)
+  }];
+}
+
 // OPCODE(EXEC,       BB)       /* R(a) = blockexec(R(a),SEQ[b]) */
 def ExecOp : Rite_Op<"OP_EXEC"> {
   let summary = "OP_EXEC";

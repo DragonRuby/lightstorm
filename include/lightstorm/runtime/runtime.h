@@ -51,6 +51,7 @@ LIGHTSTORM_INLINE mrb_value ls_intern_string(mrb_state *mrb, mrb_value str) {
 }
 
 mrb_value ls_send(mrb_state *mrb, mrb_value recv, mrb_sym name, mrb_int argc, ...);
+mrb_value ls_sendv(mrb_state *mrb, mrb_value recv, mrb_sym name, mrb_value array);
 
 mrb_value ls_compare_gt(mrb_state *mrb, mrb_value lhs, mrb_value rhs);
 mrb_value ls_compare_ge(mrb_state *mrb, mrb_value lhs, mrb_value rhs);
