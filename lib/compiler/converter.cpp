@@ -729,6 +729,7 @@ static void createBody(mlir::MLIRContext &context, mrb_state *mrb, mlir::func::F
       store(regs.a, def);
     } break;
 
+    /// Not supported
     case OP_LAMBDA: {
       regs.a = READ_B();
       regs.b = READ_B();
@@ -797,6 +798,19 @@ static void createBody(mlir::MLIRContext &context, mrb_state *mrb, mlir::func::F
 
     case OP_CALL: {
       frontend_error(location, "Unexpected OP_CALL");
+    } break;
+
+    case OP_SENDVB: {
+      regs.a = READ_B();
+      regs.b = READ_B();
+      frontend_error(location, "Blocks are not supported");
+    } break;
+
+    case OP_SENDB: {
+      regs.a = READ_B();
+      regs.b = READ_B();
+      regs.c = READ_B();
+      frontend_error(location, "Blocks are not supported");
     } break;
 
     case OP_DEBUG: {
