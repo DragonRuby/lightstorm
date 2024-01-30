@@ -832,6 +832,54 @@ static void createBody(mlir::MLIRContext &context, mrb_state *mrb, mlir::func::F
       frontend_warning(location, "Skipping OP_DEBUG");
     } break;
 
+    /// Not implemented yet
+    case OP_SENDVK: {
+      regs.a = READ_B();
+      regs.b = READ_B();
+      frontend_warning(location, "OP_SENDVK not implemented in mruby 3.0 yet");
+    } break;
+
+    case OP_ERR: {
+      regs.a = READ_B();
+      frontend_error(location, "OP_ERR not implemented yet");
+    } break;
+
+    case OP_EXEC16: {
+      regs.a = READ_B();
+      regs.b = READ_S();
+      frontend_error(location, "OP_EXEC16 not implemented yet");
+    } break;
+
+    case OP_STRING16: {
+      regs.a = READ_B();
+      regs.b = READ_S();
+      frontend_error(location, "OP_STRING16 not implemented yet");
+    } break;
+
+    case OP_METHOD16: {
+      regs.a = READ_B();
+      regs.b = READ_S();
+      frontend_error(location, "OP_METHOD16 not implemented yet");
+    } break;
+
+    case OP_SETSV:
+    case OP_GETSV: {
+      regs.a = READ_B();
+      regs.b = READ_B();
+      frontend_error(location, "Special variables (OP_SETSV/OP_GETSV) are not implemented yet");
+    } break;
+
+    case OP_KARG:
+    case OP_KEY_P: {
+      regs.a = READ_B();
+      regs.b = READ_B();
+      frontend_error(location, "Keyword arguments are not implemented yet");
+    } break;
+
+    case OP_KEYEND: {
+      frontend_error(location, "Keyword arguments are not implemented yet");
+    } break;
+
     default: {
       using namespace std::string_literals;
       auto msg = "Hit unsupported op: "s + fs_opcode_name(opcode);
