@@ -813,6 +813,18 @@ static void createBody(mlir::MLIRContext &context, mrb_state *mrb, mlir::func::F
       frontend_error(location, "Blocks are not supported");
     } break;
 
+    case OP_SUPER: {
+      regs.a = READ_B();
+      regs.b = READ_B();
+      frontend_error(location, "Calling `super` is not supported");
+    } break;
+
+    case OP_ARGARY: {
+      regs.a = READ_B();
+      regs.b = READ_S();
+      frontend_error(location, "Calling `super` is not supported");
+    } break;
+
     case OP_DEBUG: {
       regs.a = READ_B();
       regs.b = READ_B();
