@@ -32,6 +32,10 @@ LIGHTSTORM_INLINE mrb_value ls_load_false_value(mrb_state *mrb) {
   return mrb_false_value();
 }
 
+LIGHTSTORM_INLINE mrb_value ls_load_object_class_value(mrb_state *mrb) {
+  return mrb_obj_value(mrb->object_class);
+}
+
 LIGHTSTORM_INLINE mrb_value ls_load_string(mrb_state *mrb, const char *s, mrb_int len) {
   return mrb_str_new(mrb, s, len);
 }

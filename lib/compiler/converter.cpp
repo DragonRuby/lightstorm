@@ -319,6 +319,14 @@ static void createBody(mlir::MLIRContext &context, mrb_state *mrb, mlir::func::F
       store(regs.a, def);
     } break;
 
+    case OP_OCLASS:{
+      // OPCODE(OCLASS,     B)        /* R(a) = ::Object */
+      regs.a = READ_B();
+      auto def = builder.create<rite::LoadValueOp>(
+          location, mrb_value_t, state, rite::LoadValueKind::object_class_value);
+      store(regs.a, def);
+    }break;
+
     case OP_SEND: {
       // OPCODE(SEND,       BBB)      /* R(a) = call(R(a),Syms(b),R(a+1),...,R(a+c)) */
       regs.a = READ_B();

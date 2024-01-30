@@ -122,6 +122,8 @@ def LoadValueTrue : I32EnumAttrCase<"true_value", 3>;
 def LoadValueFalse : I32EnumAttrCase<"false_value", 4>;
 // OP_TCLASS
 def LoadValueTargetClass : I32EnumAttrCase<"target_class_value", 5>;
+// OP_OCLASS
+def LoadValueObjectClass : I32EnumAttrCase<"object_class_value", 6>;
 
 def LoadValueKind : I32EnumAttr<
     "LoadValueKind",
@@ -130,7 +132,8 @@ def LoadValueKind : I32EnumAttr<
      LoadValueSelf,
      LoadValueTrue,
      LoadValueFalse,
-     LoadValueTargetClass
+     LoadValueTargetClass,
+     LoadValueObjectClass
     ]> {
   let cppNamespace = "rite";
 }
