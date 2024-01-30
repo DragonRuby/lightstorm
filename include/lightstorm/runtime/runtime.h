@@ -84,6 +84,7 @@ mrb_value ls_define_method(mrb_state *mrb, mrb_value target, mrb_value method, m
 
 mrb_value ls_array(mrb_state *mrb, mrb_int size, ...);
 mrb_value ls_hash(mrb_state *mrb, mrb_int size, ...);
+mrb_value ls_hash_add(mrb_state *mrb, mrb_value hash, mrb_int size, ...);
 mrb_value ls_hash_merge(mrb_state *mrb, mrb_value h1, mrb_value h2);
 
 LIGHTSTORM_INLINE mrb_value ls_aref(mrb_state *mrb, mrb_value array, mrb_int index) {

@@ -319,13 +319,13 @@ static void createBody(mlir::MLIRContext &context, mrb_state *mrb, mlir::func::F
       store(regs.a, def);
     } break;
 
-    case OP_OCLASS:{
+    case OP_OCLASS: {
       // OPCODE(OCLASS,     B)        /* R(a) = ::Object */
       regs.a = READ_B();
       auto def = builder.create<rite::LoadValueOp>(
           location, mrb_value_t, state, rite::LoadValueKind::object_class_value);
       store(regs.a, def);
-    }break;
+    } break;
 
     case OP_SEND: {
       // OPCODE(SEND,       BBB)      /* R(a) = call(R(a),Syms(b),R(a+1),...,R(a+c)) */
@@ -620,6 +620,22 @@ static void createBody(mlir::MLIRContext &context, mrb_state *mrb, mlir::func::F
       regs.a = READ_B();
       auto def = builder.create<rite::HashCatOp>(
           location, mrb_value_t, state, load(regs.a), load(regs.a + 1));
+      store(regs.a, def);
+    } break;
+
+    case OP_HASHADD: {
+      // OPCODE(HASHADD,    BB)       /* R(a) = hash_push(R(a),R(a+1)..R(a+b*2)) */
+      regs.a = READ_B();
+      regs.b = READ_B();
+      auto argc = regs.b * 2;
+      auto argcOp =
+          builder.create<mlir::arith::ConstantOp>(location, builder.getI64IntegerAttr(argc));
+      std::vector<mlir::Value> argv;
+      for (uint32_t i = regs.a + 1; i < regs.a + argc + 1; i++) {
+        argv.push_back(load(i));
+      }
+      auto def =
+          builder.create<rite::HashAddOp>(location, mrb_value_t, state, load(regs.a), argcOp, argv);
       store(regs.a, def);
     } break;
 

@@ -223,6 +223,22 @@ LIGHTSTORM_INLINE mrb_value ls_hash(mrb_state *mrb, mrb_int size, ...) {
   return hash;
 }
 
+LIGHTSTORM_INLINE mrb_value ls_hash_add(mrb_state *mrb, mrb_value hash, mrb_int size, ...) {
+  mrb_ensure_hash_type(mrb, hash);
+  mrb_value argv[size];
+  va_list args;
+  va_start(args, size);
+  for (mrb_int i = 0; i < size; i++) {
+    argv[i] = va_arg(args, mrb_value);
+  }
+  va_end(args);
+
+  for (int i = 0; i < size; i += 2) {
+    mrb_hash_set(mrb, hash, argv[i], argv[i + 1]);
+  }
+  return hash;
+}
+
 LIGHTSTORM_INLINE mrb_value ls_define_module(mrb_state *mrb, mrb_value target, mrb_sym sym) {
   if (mrb_nil_p(target)) {
     // TODO: check when proc is null, this shouldn't happen?

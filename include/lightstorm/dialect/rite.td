@@ -412,6 +412,16 @@ def HashCatOp : Rite_Op<"OP_HASHCAT"> {
   }];
 }
 
+// OPCODE(HASHADD,    BB)       /* R(a) = hash_push(R(a),R(a+1)..R(a+b*2)) */
+def HashAddOp : Rite_Op<"OP_HASHADD"> {
+  let summary = "OP_HASHADD";
+  let arguments = (ins StateType:$mrb, ValueType:$hash, I64:$argc, Variadic<ValueType>:$argv);
+  let results = (outs ValueType);
+  let assemblyFormat = [{
+    `(` operands `,` type($argv) `)` attr-dict `->` type(results)
+  }];
+}
+
 ///
 /// Const Ops
 ///
