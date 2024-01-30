@@ -888,6 +888,13 @@ static void createBody(mlir::MLIRContext &context, mrb_state *mrb, mlir::func::F
       frontend_error(location, "Keyword arguments are not implemented yet");
     } break;
 
+    case OP_ASET: {
+      regs.a = READ_B();
+      regs.b = READ_B();
+      regs.c = READ_B();
+      frontend_error(location, "OP_ASET is not implemented yet");
+    } break;
+
     default: {
       using namespace std::string_literals;
       auto msg = "Hit unsupported op: "s + fs_opcode_name(opcode);
