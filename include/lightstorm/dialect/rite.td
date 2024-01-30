@@ -102,6 +102,16 @@ def StrCatOp : Rite_Op<"OP_STRCAT"> {
   }];
 }
 
+// OPCODE(INTERN,     B)        /* R(a) = intern(R(a)) */
+def InternOp : Rite_Op<"OP_INTERN"> {
+  let summary = "OP_INTERN";
+  let arguments = (ins StateType:$mrb, ValueType:$str);
+  let results = (outs ValueType);
+  let assemblyFormat = [{
+    `(` operands `)` attr-dict `->` type(results)
+  }];
+}
+
 // OPCODE(SCLASS,     B)        /* R(a) = R(a).singleton_class */
 def SClassOp : Rite_Op<"OP_SCLASS"> {
   let summary = "OP_SCLASS";

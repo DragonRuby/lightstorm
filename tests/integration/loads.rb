@@ -13,6 +13,7 @@ puts true
 puts false
 puts self
 puts :hello
+puts %i(a_sym)
 
 
 # RUN: %mruby %s | %filecheck %s %fcheck_opts
@@ -33,3 +34,4 @@ puts :hello
 # CHECK-NEXT:false
 # CHECK-NEXT:main
 # CHECK-NEXT:hello
+# CHECK-NEXT:[:a_sym]

@@ -45,6 +45,11 @@ LIGHTSTORM_INLINE mrb_value ls_strcat(mrb_state *mrb, mrb_value str, mrb_value s
   return str;
 }
 
+LIGHTSTORM_INLINE mrb_value ls_intern_string(mrb_state *mrb, mrb_value str) {
+  mrb_sym sym = mrb_intern_str(mrb, str);
+  return mrb_symbol_value(sym);
+}
+
 mrb_value ls_send(mrb_state *mrb, mrb_value recv, mrb_sym name, mrb_int argc, ...);
 
 mrb_value ls_compare_gt(mrb_state *mrb, mrb_value lhs, mrb_value rhs);

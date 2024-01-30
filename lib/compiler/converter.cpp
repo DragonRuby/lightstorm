@@ -281,6 +281,13 @@ static void createBody(mlir::MLIRContext &context, mrb_state *mrb, mlir::func::F
       builder.create<rite::StrCatOp>(location, mrb_value_t, state, load(regs.a), load(regs.a + 1));
     } break;
 
+    case OP_INTERN: {
+      // OPCODE(INTERN,     B)        /* R(a) = intern(R(a)) */
+      regs.a = READ_B();
+      auto def = builder.create<rite::InternOp>(location, mrb_value_t, state, load( regs.a ));
+      store(regs.a, def);
+    } break;
+
     case OP_LOADNIL:
     case OP_LOADSELF:
     case OP_LOADT:
