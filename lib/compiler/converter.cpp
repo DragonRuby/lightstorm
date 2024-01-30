@@ -75,11 +75,14 @@ static void createBody(mlir::MLIRContext &context, mrb_state *mrb, mlir::func::F
   mlir::Type mrb_value_t(rite::mrb_valueType::get(&context));
 
   auto functionLocation = mlir::FileLineColLoc::get(&context, filename, line, 0);
-  auto entryBlock = func.addEntryBlock();
+  auto prologue = func.addEntryBlock();
+  auto entryBlock = func.addBlock();
 
   auto state = func.getArgument(0);
 
   mlir::OpBuilder builder(&context);
+  builder.setInsertionPointToStart(prologue);
+  builder.create<mlir::cf::BranchOp>(functionLocation, entryBlock);
   builder.setInsertionPointToEnd(entryBlock);
 
   // A set of virtual registers used for SSA generation
@@ -391,6 +394,7 @@ static void createBody(mlir::MLIRContext &context, mrb_state *mrb, mlir::func::F
       regs.a = READ_W();
       // Skipping for now
       mrb_int a = regs.a;
+      mrb_int m1 = MRB_ASPEC_REQ(a);
       mrb_int o = MRB_ASPEC_OPT(a);
       mrb_int r = MRB_ASPEC_REST(a);
       mrb_int m2 = MRB_ASPEC_POST(a);
@@ -412,6 +416,13 @@ static void createBody(mlir::MLIRContext &context, mrb_state *mrb, mlir::func::F
         frontend_error(location, "Block arguments are not supported yet");
         exit(1);
       }
+      // OP_ENTER must be inserted at the very beginning of the function as it modifies the virtual
+      // stack from which local variables/arguments are loaded
+      mlir::OpBuilder::InsertionGuard insertGuard(builder);
+      builder.setInsertionPointToStart(prologue);
+      auto requiredArgs =
+          builder.create<mlir::arith::ConstantOp>(location, builder.getI64IntegerAttr(m1));
+      builder.create<rite::EnterOp>(location, mrb_value_t, state, requiredArgs);
     } break;
 
     case OP_RETURN: {

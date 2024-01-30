@@ -291,6 +291,7 @@ void lightstorm::convertRiteToEmitC(mlir::MLIRContext &context, mlir::ModuleOp m
   DirectOpConversion(rite::SClassOp, ls_load_singleton_class);
   DirectOpConversion(rite::ModuleOp, ls_define_module);
   DirectOpConversion(rite::ClassOp, ls_vm_define_class);
+  DirectOpConversion(rite::EnterOp, ls_enter);
   DirectOpConversion(rite::StrCatOp, ls_strcat);
   DirectOpConversion(rite::InternOp, ls_intern_string);
   DirectOpConversion(rite::SendVOp, ls_sendv);

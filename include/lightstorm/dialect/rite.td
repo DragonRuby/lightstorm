@@ -201,6 +201,16 @@ def InternSymOp : Rite_Op<"intern_symbol"> {
   }];
 }
 
+// OPCODE(ENTER,      W)        /* arg setup according to flags (23=m5:o5:r1:m5:k5:d1:b1) */
+def EnterOp : Rite_Op<"OP_ENTER"> {
+  let summary = "OP_ENTER";
+  let arguments = (ins StateType:$mrb, I64:$requiredArgs);
+  let results = (outs ValueType);
+  let assemblyFormat = [{
+    `(` operands `)` attr-dict `->` type(results)
+  }];
+}
+
 // OPCODE(MODULE,     BB)       /* R(a) = newmodule(R(a),Syms(b)) */
 def ModuleOp : Rite_Op<"OP_MODULE"> {
   let summary = "OP_MODULE";

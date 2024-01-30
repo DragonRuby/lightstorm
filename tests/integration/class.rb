@@ -1,6 +1,10 @@
 class Adder
-  def add(a, b)
-    a + b
+  def initialize(a, b)
+    @a = a
+    @b = b
+  end
+  def add
+    @a + @b
   end
 
   alias sum add
@@ -8,9 +12,8 @@ class Adder
   # undef sum
 end
 
-adder = Adder.new
-puts adder.add(2, 42)
-puts adder.add(15, 30)
+puts Adder.new(2, 42).add
+puts Adder.new(15, 30).add
 
 class A; class ::C; end end
 
