@@ -264,10 +264,10 @@ def SendVOp : Rite_Op<"OP_SENDV"> {
 // OPCODE(EXEC,       BB)       /* R(a) = blockexec(R(a),SEQ[b]) */
 def ExecOp : Rite_Op<"OP_EXEC"> {
   let summary = "OP_EXEC";
-  let arguments = (ins StateType:$mrb, ValueType:$receiver, FlatSymbolRefAttr:$func);
+  let arguments = (ins StateType:$mrb, ValueType:$receiver, FlatSymbolRefAttr:$method);
   let results = (outs ValueType);
   let assemblyFormat = [{
-    `(` operands `,`  $func `)` attr-dict `->` type(results)
+    `(` operands `,`  $method `)` attr-dict `->` type(results)
   }];
 }
 

@@ -189,16 +189,3 @@ LIGHTSTORM_INLINE mrb_value ls_undef_method(mrb_state *mrb, mrb_sym sym) {
 }
 
 mrb_value ls_enter(mrb_state *mrb, mrb_int requiredArgs);
-
-// Temporary prototypes
-static mrb_value _irep_0(mrb_state *, mrb_value);
-static mrb_value _irep_1(mrb_state *, mrb_value);
-static mrb_value _irep_2(mrb_state *, mrb_value);
-static mrb_value _irep_3(mrb_state *, mrb_value);
-static mrb_value _irep_4(mrb_state *, mrb_value);
-static mrb_value _irep_5(mrb_state *, mrb_value);
-static mrb_value _irep_6(mrb_state *, mrb_value);
-static mrb_value _irep_7(mrb_state *, mrb_value);
-static mrb_value _irep_8(mrb_state *, mrb_value);
-static mrb_value _irep_9(mrb_state *, mrb_value);
-static mrb_value _irep_10(mrb_state *, mrb_value);

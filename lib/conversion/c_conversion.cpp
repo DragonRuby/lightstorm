@@ -119,50 +119,33 @@ struct LoadStringOpConversion : public LightstormConversionPattern<rite::LoadStr
   }
 };
 
-struct ExecOpConversion : public LightstormConversionPattern<rite::ExecOp> {
-  explicit ExecOpConversion(LightstormConversionContext &conversionContext)
-      : LightstormConversionPattern(conversionContext) {}
+static mlir::Value createMethodRef(mlir::ConversionPatternRewriter &rewriter, mlir::Location loc,
+                                   mlir::FlatSymbolRefAttr method) {
+  auto functionName = method.getAttr().str();
+  auto prototypeAttr =
+      rewriter.getStringAttr("mrb_value " + functionName + "(mrb_state *, mrb_value);");
+  rewriter.create<mlir::emitc::VerbatimOp>(loc, prototypeAttr);
+  auto mrb_func_t = mlir::emitc::OpaqueType::get(rewriter.getContext(), "mrb_func_t");
+  return rewriter.create<mlir::emitc::ConstantOp>(
+      loc, mrb_func_t, mlir::emitc::OpaqueAttr::get(rewriter.getContext(), functionName));
+}
 
-  mlir::LogicalResult matchAndRewrite(rite::ExecOp op, llvm::ArrayRef<mlir::Value> operands,
+template <typename Op> struct MethodRefOpConversion : public LightstormConversionPattern<Op> {
+  explicit MethodRefOpConversion(LightstormConversionContext &conversionContext, std::string name)
+      : LightstormConversionPattern<Op>(conversionContext), name(std::move(name)) {}
+
+  mlir::LogicalResult matchAndRewrite(Op op, llvm::ArrayRef<mlir::Value> operands,
                                       llvm::ArrayRef<mlir::Type> operandTypes,
                                       mlir::Type resultType,
                                       mlir::ConversionPatternRewriter &rewriter) const final {
-    auto mrb_func_t = mlir::emitc::OpaqueType::get(getContext(), "mrb_func_t");
-    auto ref = rewriter.create<mlir::emitc::ConstantOp>(
-        op->getLoc(),
-        mrb_func_t,
-        mlir::emitc::OpaqueAttr::get(getContext(), op.getFuncAttr().getAttr()));
-    auto newOp = opaqueCallOp(rewriter,
-                              op->getLoc(),
-                              resultType,
-                              "ls_exec",
-                              mlir::ValueRange{ operands.front(), operands.back(), ref });
+    auto ref = createMethodRef(rewriter, op->getLoc(), op.getMethodAttr());
+    std::vector<mlir::Value> argv{ operands };
+    argv.push_back(ref);
+    auto newOp = opaqueCallOp(rewriter, op->getLoc(), resultType, name, argv);
     rewriter.replaceOp(op, newOp.getResult(0));
     return mlir::success();
   }
-};
-
-struct MethodOpConversion : public LightstormConversionPattern<rite::MethodOp> {
-  explicit MethodOpConversion(LightstormConversionContext &conversionContext)
-      : LightstormConversionPattern(conversionContext) {}
-
-  mlir::LogicalResult matchAndRewrite(rite::MethodOp op, llvm::ArrayRef<mlir::Value> operands,
-                                      llvm::ArrayRef<mlir::Type> operandTypes,
-                                      mlir::Type resultType,
-                                      mlir::ConversionPatternRewriter &rewriter) const final {
-    auto mrb_func_t = mlir::emitc::OpaqueType::get(getContext(), "mrb_func_t");
-    auto ref = rewriter.create<mlir::emitc::ConstantOp>(
-        op->getLoc(),
-        mrb_func_t,
-        mlir::emitc::OpaqueAttr::get(getContext(), op.getMethodAttr().getAttr()));
-    auto newOp = opaqueCallOp(rewriter,
-                              op->getLoc(),
-                              resultType,
-                              "ls_create_method",
-                              mlir::ValueRange{ operands.front(), ref });
-    rewriter.replaceOp(op, newOp.getResult(0));
-    return mlir::success();
-  }
+  std::string name;
 };
 
 struct ReturnOpConversion : public LightstormConversionPattern<rite::ReturnOp> {
@@ -218,6 +201,10 @@ template <typename Op> struct KindOpConversion : public LightstormConversionPatt
   patterns.add<lightstorm_conversion::DirectOpConversion<Op>>(loweringContext,                     \
                                                               std::string("" #function))
 
+#define MethodRefOpConversion(Op, function)                                                        \
+  patterns.add<lightstorm_conversion::MethodRefOpConversion<Op>>(loweringContext,                  \
+                                                                 std::string("" #function))
+
 void lightstorm::convertRiteToEmitC(mlir::MLIRContext &context, mlir::ModuleOp module) {
   mlir::ConversionTarget target(context);
   target.addLegalOp<mlir::ModuleOp>();
@@ -272,8 +259,6 @@ void lightstorm::convertRiteToEmitC(mlir::MLIRContext &context, mlir::ModuleOp m
       ///
       lightstorm_conversion::InternSymOpConversion,
       lightstorm_conversion::LoadStringOpConversion,
-      lightstorm_conversion::ExecOpConversion,
-      lightstorm_conversion::MethodOpConversion,
       lightstorm_conversion::ReturnOpConversion,
       lightstorm_conversion::KindOpConversion<rite::BranchPredicateOp>,
       lightstorm_conversion::KindOpConversion<rite::ArithOp>,
@@ -282,6 +267,9 @@ void lightstorm::convertRiteToEmitC(mlir::MLIRContext &context, mlir::ModuleOp m
 
       ///
       >(loweringContext);
+
+  MethodRefOpConversion(rite::ExecOp, ls_exec);
+  MethodRefOpConversion(rite::MethodOp, ls_create_method);
 
   DirectOpConversion(rite::LoadIOp, ls_load_i);
   DirectOpConversion(rite::LoadFloatOp, ls_load_f);
