@@ -163,7 +163,7 @@ LIGHTSTORM_INLINE mrb_value ls_arith_div(mrb_state *mrb, mrb_value lhs, mrb_valu
 }
 
 LIGHTSTORM_INLINE mrb_value ls_load_target_class_value(mrb_state *mrb) {
-  struct RClass *targetClass = mrb_vm_ci_target_class(mrb->c->ci);
+  struct RClass *targetClass = MRB_PROC_TARGET_CLASS(mrb->c->ci->proc);
   if (!targetClass) {
     mrb_value exc = mrb_exc_new_lit(mrb, E_TYPE_ERROR, "no target class or module");
     mrb_exc_raise(mrb, exc);
