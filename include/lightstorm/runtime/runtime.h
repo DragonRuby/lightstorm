@@ -25,6 +25,9 @@ LIGHTSTORM_INLINE mrb_value ls_load_nil_value(mrb_state *mrb) {
 LIGHTSTORM_INLINE mrb_value ls_load_self_value(mrb_state *mrb) {
   return mrb->c->ci->stack[0];
 }
+LIGHTSTORM_INLINE void ls_store_self_value(mrb_state *mrb, mrb_value self) {
+  mrb->c->ci->stack[0] = self;
+}
 LIGHTSTORM_INLINE mrb_value ls_load_true_value(mrb_state *mrb) {
   return mrb_true_value();
 }

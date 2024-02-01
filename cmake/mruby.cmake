@@ -7,7 +7,7 @@ set (MRUBY_STATIC "${MRUBY_DIR}/build/host/lib/libmruby.a")
 ExternalProject_Add(mruby
   SOURCE_DIR ${MRUBY_DIR}
   CONFIGURE_COMMAND ""
-  BUILD_COMMAND ${CMAKE_COMMAND} -E env CFLAGS="-flto" rake all --verbose
+  BUILD_COMMAND ${CMAKE_COMMAND} -E env CFLAGS="-g" rake all --verbose
   BUILD_IN_SOURCE ON
   INSTALL_COMMAND ""
   BUILD_BYPRODUCTS ${MRUBY_STATIC} ${MRUBY_BINARY} ${MRBC_BINARY}

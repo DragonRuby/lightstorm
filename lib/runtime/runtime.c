@@ -264,9 +264,9 @@ LIGHTSTORM_INLINE mrb_value ls_exec(mrb_state *mrb, mrb_value receiver, mrb_func
   mrb_vm_ci_proc_set(mrb->c->ci, proc);
   // Since we do not pop/push callinfo (stack frame), we need to set and restore the right `self`
   mrb_value old_self = ls_load_self_value(mrb);
-  mrb->c->ci->stack[0] = receiver;
+  ls_store_self_value(mrb, receiver);
   mrb_value ret = func(mrb, receiver);
-  mrb->c->ci->stack[0] = old_self;
+  ls_store_self_value(mrb, old_self);
   return ret;
 }
 
@@ -275,6 +275,7 @@ LIGHTSTORM_INLINE static mrb_value ls_send_internal(mrb_state *mrb, mrb_value re
   struct mrb_jmpbuf *prev_jmp = mrb->jmp;
   struct mrb_jmpbuf c_jmp;
   mrb_value ret = mrb_nil_value();
+  mrb_value old_self = ls_load_self_value(mrb);
   MRB_TRY(&c_jmp) {
     mrb->jmp = &c_jmp;
     ret = mrb_funcall_argv(mrb, recv, name, argc, argv);
@@ -285,6 +286,7 @@ LIGHTSTORM_INLINE static mrb_value ls_send_internal(mrb_state *mrb, mrb_value re
     abort();
   }
   MRB_END_EXC(&c_jmp);
+  ls_store_self_value(mrb, old_self);
   return ret;
 }
 
