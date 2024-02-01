@@ -13,6 +13,7 @@ function(add_integration_test ruby)
     OUTPUT_NAME ${ruby}.tmp.exe
   )
   target_compile_options(${target_name} PRIVATE -g)
+  target_link_options(${target_name} PRIVATE -g)
   target_link_libraries(${target_name} PRIVATE mruby_static lightstorm_runtime lightstorm_runtime_main)
   add_dependencies(${target_name} mruby_static)
   set (test_target_names ${test_target_names} "$<TARGET_FILE:${target_name}>" PARENT_SCOPE)

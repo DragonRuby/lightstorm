@@ -260,6 +260,7 @@ LIGHTSTORM_INLINE mrb_value ls_exec(mrb_state *mrb, mrb_value receiver, mrb_func
   struct RProc *proc = mrb_proc_new_cfunc(mrb, func);
   MRB_PROC_SET_TARGET_CLASS(proc, targetClass);
   proc->flags |= MRB_PROC_SCOPE;
+  proc->flags |= MRB_PROC_STRICT;
   proc->upper = upperProc;
   mrb_vm_ci_proc_set(mrb->c->ci, proc);
   // Since we do not pop/push callinfo (stack frame), we need to set and restore the right `self`
@@ -267,6 +268,7 @@ LIGHTSTORM_INLINE mrb_value ls_exec(mrb_state *mrb, mrb_value receiver, mrb_func
   ls_store_self_value(mrb, receiver);
   mrb_value ret = func(mrb, receiver);
   ls_store_self_value(mrb, old_self);
+  mrb_vm_ci_proc_set(mrb->c->ci, upperProc);
   return ret;
 }
 
