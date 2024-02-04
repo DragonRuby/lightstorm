@@ -2,6 +2,7 @@ include "mlir/IR/OpBase.td"
 include "mlir/IR/AttrTypeBase.td"
 include "mlir/IR/EnumAttr.td"
 include "mlir/Interfaces/MemorySlotInterfaces.td"
+include "mlir/Interfaces/SideEffectInterfaces.td"
 
 def Rite_Dialect : Dialect {
   let name = "rite";
@@ -65,7 +66,7 @@ def LoadLocalVariableOp : Rite_Op<"local_variable"> {
 }
 
 // OPCODE(LOADI,      BB)       /* R(a) = mrb_int(b) */
-def LoadIOp : Rite_Op<"OP_LOADI"> {
+def LoadIOp : Rite_Op<"OP_LOADI", [Pure]> {
   let summary = "OP_LOADI";
   let arguments = (ins StateType:$mrb, I64:$value);
   let results = (outs ValueType);
@@ -75,7 +76,7 @@ def LoadIOp : Rite_Op<"OP_LOADI"> {
 }
 
 // OPCODE(LOADL,      BB)       /* R(a) = Pool(b) */
-def LoadFloatOp : Rite_Op<"OP_LOADFLOAT"> {
+def LoadFloatOp : Rite_Op<"OP_LOADFLOAT", [Pure]> {
   let summary = "OP_LOADFLOAT";
   let arguments = (ins StateType:$mrb, F64:$value);
   let results = (outs ValueType);
@@ -85,7 +86,7 @@ def LoadFloatOp : Rite_Op<"OP_LOADFLOAT"> {
 }
 
 // OPCODE(LOADSYM,    BB)       /* R(a) = Syms(b) */
-def LoadSymOp : Rite_Op<"OP_LOADSYM"> {
+def LoadSymOp : Rite_Op<"OP_LOADSYM", [Pure]> {
   let summary = "OP_LOADSYM";
   let arguments = (ins StateType:$mrb, SymType:$mid);
   let results = (outs ValueType);
@@ -125,7 +126,7 @@ def InternOp : Rite_Op<"OP_INTERN"> {
 }
 
 // OPCODE(SCLASS,     B)        /* R(a) = R(a).singleton_class */
-def SClassOp : Rite_Op<"OP_SCLASS"> {
+def SClassOp : Rite_Op<"OP_SCLASS", [Pure]> {
   let summary = "OP_SCLASS";
   let arguments = (ins StateType:$mrb, ValueType:$target);
   let results = (outs ValueType);
@@ -160,7 +161,7 @@ def LoadValueKind : I32EnumAttr<
   let cppNamespace = "rite";
 }
 
-def LoadValueOp : Rite_Op<"load_value"> {
+def LoadValueOp : Rite_Op<"load_value", [Pure]> {
   let summary = "Load value";
   let arguments = (ins StateType:$mrb, LoadValueKind:$kind);
   let results = (outs ValueType);
@@ -191,7 +192,7 @@ def CmpKind : I32EnumAttr<
   let cppNamespace = "rite";
 }
 
-def CmpOp : Rite_Op<"cmp"> {
+def CmpOp : Rite_Op<"cmp", [Pure]> {
   let summary = "cmp";
   let arguments = (ins StateType:$mrb, ValueType:$lhs, ValueType:$rhs, CmpKind:$kind);
   let results = (outs ValueType);
@@ -204,7 +205,7 @@ def CmpOp : Rite_Op<"cmp"> {
 // Calls
 //
 
-def InternSymOp : Rite_Op<"intern_symbol"> {
+def InternSymOp : Rite_Op<"intern_symbol", [Pure]> {
   let summary = "Converts string symbol into a numerical value";
   let arguments = (ins StateType:$mrb, SymAttr:$mid);
   let results = (outs SymType);

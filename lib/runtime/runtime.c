@@ -272,6 +272,14 @@ LIGHTSTORM_INLINE mrb_value ls_exec(mrb_state *mrb, mrb_value receiver, mrb_func
   return ret;
 }
 
+LIGHTSTORM_INLINE static mrb_sym ls_get_sym_new(mrb_state *mrb) {
+  static mrb_sym sym = 0;
+  if (sym == 0) {
+    sym = mrb_intern(mrb, "new", 3);
+  }
+  return sym;
+}
+
 LIGHTSTORM_INLINE mrb_value ls_send_argv(mrb_state *mrb, mrb_value recv, mrb_sym name, mrb_int argc,
                                          mrb_value *argv) {
   struct mrb_jmpbuf *prev_jmp = mrb->jmp;
@@ -283,7 +291,7 @@ LIGHTSTORM_INLINE mrb_value ls_send_argv(mrb_state *mrb, mrb_value recv, mrb_sym
     // preserve `self`
     // In this case we propagate self from the parent stack frame
     // TODO: add caching
-    mrb_sym new_sym = mrb_intern(mrb, "new", 3);
+    mrb_sym new_sym = ls_get_sym_new(mrb);
     if (new_sym == name) {
       //         parent stack frame
       old_self = (mrb->c->ci - 1)->stack[0];
