@@ -119,6 +119,22 @@ struct LoadStringOpConversion : public LightstormConversionPattern<rite::LoadStr
   }
 };
 
+struct LocationOpConversion : public LightstormConversionPattern<rite::LocationOp> {
+  explicit LocationOpConversion(LightstormConversionContext &conversionContext)
+      : LightstormConversionPattern(conversionContext) {}
+
+  mlir::LogicalResult matchAndRewrite(rite::LocationOp op, llvm::ArrayRef<mlir::Value> operands,
+                                      llvm::ArrayRef<mlir::Type> operandTypes,
+                                      mlir::Type resultType,
+                                      mlir::ConversionPatternRewriter &rewriter) const final {
+    std::string comment("// ");
+    comment += op.getLocation().str();
+    rewriter.create<mlir::emitc::VerbatimOp>(op->getLoc(), comment);
+    rewriter.eraseOp(op);
+    return mlir::success();
+  }
+};
+
 static mlir::Value createMethodRef(mlir::ConversionPatternRewriter &rewriter, mlir::Location loc,
                                    mlir::FlatSymbolRefAttr method) {
   auto functionName = method.getAttr().str();
@@ -260,6 +276,7 @@ void lightstorm::convertRiteToEmitC(mlir::MLIRContext &context, mlir::ModuleOp m
       lightstorm_conversion::InternSymOpConversion,
       lightstorm_conversion::LoadStringOpConversion,
       lightstorm_conversion::ReturnOpConversion,
+      lightstorm_conversion::LocationOpConversion,
       lightstorm_conversion::KindOpConversion<rite::BranchPredicateOp>,
       lightstorm_conversion::KindOpConversion<rite::ArithOp>,
       lightstorm_conversion::KindOpConversion<rite::CmpOp>,

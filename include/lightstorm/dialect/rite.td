@@ -40,6 +40,18 @@ class Rite_Op<string mnemonic, list<Trait> traits = []> :
     Op<Rite_Dialect, mnemonic, traits>;
 
 //
+// Ops for debugging
+//
+
+def LocationOp : Rite_Op<"location"> {
+  let summary = "Stores the location as a string";
+  let arguments = (ins StrAttr:$location);
+  let assemblyFormat = [{
+    `(` $location `)` attr-dict `->` type(results)
+  }];
+}
+
+//
 // Loads
 //
 

@@ -148,6 +148,10 @@ static void createBody(mlir::MLIRContext &context, mrb_state *mrb, mlir::func::F
 
     addressMapping[pc_offset] = body;
 
+    builder.create<rite::LocationOp>(
+        location,
+        builder.getStringAttr(location.getFilename().str() + ":" + std::to_string(location.getLine())));
+
     auto symbol = [&](mrb_sym sym) {
       auto attr = rite::mrb_symAttr::get(&context, mrb_sym_name(mrb, sym));
       auto symType = rite::mrb_symType::get(&context);
