@@ -34,7 +34,7 @@ void mrb_exc_set(mrb_state *mrb, mrb_value exc);
     break;                                                                                         \
   default: {                                                                                       \
     mrb_sym mid = MRB_OPSYM(sym);                                                                  \
-    mrb_value ret = mrb_funcall_id(mrb, lhs, mid, 1, &rhs);                                        \
+    mrb_value ret = ls_send_argv(mrb, lhs, mid, 1, &rhs);                                          \
     return ret;                                                                                    \
   }                                                                                                \
   }                                                                                                \
@@ -76,7 +76,7 @@ LIGHTSTORM_INLINE mrb_value ls_compare_eq(mrb_state *mrb, mrb_value lhs, mrb_val
     OP_MATH_CASE_STRING_##op_name();                                                               \
   default: {                                                                                       \
     mrb_sym mid = MRB_OPSYM(op_name);                                                              \
-    mrb_value ret = mrb_funcall_id(mrb, lhs, mid, 1, &rhs);                                        \
+    mrb_value ret = ls_send_argv(mrb, lhs, mid, 1, &rhs);                                          \
     return ret;                                                                                    \
   }                                                                                                \
   }
@@ -153,7 +153,7 @@ LIGHTSTORM_INLINE mrb_value ls_arith_div(mrb_state *mrb, mrb_value lhs, mrb_valu
     break;
   default: {
     mrb_sym mid = MRB_OPSYM(div);
-    mrb_value ret = mrb_funcall_id(mrb, lhs, mid, 1, &rhs);
+    mrb_value ret = ls_send_argv(mrb, lhs, mid, 1, &rhs);
     return ret;
   }
   }
@@ -272,12 +272,24 @@ LIGHTSTORM_INLINE mrb_value ls_exec(mrb_state *mrb, mrb_value receiver, mrb_func
   return ret;
 }
 
-LIGHTSTORM_INLINE static mrb_value ls_send_internal(mrb_state *mrb, mrb_value recv, mrb_sym name,
-                                                    mrb_int argc, mrb_value *argv) {
+LIGHTSTORM_INLINE mrb_value ls_send_argv(mrb_state *mrb, mrb_value recv, mrb_sym name, mrb_int argc,
+                                         mrb_value *argv) {
   struct mrb_jmpbuf *prev_jmp = mrb->jmp;
   struct mrb_jmpbuf c_jmp;
   mrb_value ret = mrb_nil_value();
   mrb_value old_self = ls_load_self_value(mrb);
+  if (mrb_nil_p(old_self)) {
+    // In certain cases (`new` followed by `initialize`) mruby pushes the stack frame but doesn't
+    // preserve `self`
+    // In this case we propagate self from the parent stack frame
+    // TODO: add caching
+    mrb_sym new_sym = mrb_intern(mrb, "new", 3);
+    if (new_sym == name) {
+      //         parent stack frame
+      old_self = (mrb->c->ci - 1)->stack[0];
+      ls_store_self_value(mrb, old_self);
+    }
+  }
   MRB_TRY(&c_jmp) {
     mrb->jmp = &c_jmp;
     ret = mrb_funcall_argv(mrb, recv, name, argc, argv);
@@ -301,7 +313,7 @@ LIGHTSTORM_INLINE mrb_value ls_send(mrb_state *mrb, mrb_value recv, mrb_sym name
     argv[i] = va_arg(args, mrb_value);
   }
   va_end(args);
-  return ls_send_internal(mrb, recv, name, argc, argv);
+  return ls_send_argv(mrb, recv, name, argc, argv);
 }
 
 LIGHTSTORM_INLINE mrb_value ls_sendv(mrb_state *mrb, mrb_value recv, mrb_sym name,
@@ -309,7 +321,7 @@ LIGHTSTORM_INLINE mrb_value ls_sendv(mrb_state *mrb, mrb_value recv, mrb_sym nam
   assert(mrb_type(array) == MRB_TT_ARRAY);
   mrb_int argc = RARRAY_LEN(array);
   mrb_value *argv = RARRAY_PTR(array);
-  return ls_send_internal(mrb, recv, name, argc, argv);
+  return ls_send_argv(mrb, recv, name, argc, argv);
 }
 
 LIGHTSTORM_INLINE mrb_value ls_vm_define_class(mrb_state *mrb, mrb_value base, mrb_value super,
@@ -476,8 +488,11 @@ LIGHTSTORM_INLINE mrb_value ls_enter(mrb_state *mrb, mrb_int requiredArgs) {
     }
   }
 
-  /* format arguments for generated code */
   mrb->c->ci->argc = (int16_t)(len + kd);
-
+  if (mrb->c->ci->argc == 0) {
+    // Once in a while GC kicks in and clears everything between `mrb->c->ci->stack + argc` and
+    // `mrb->c->stend` thus clearing `self` if argc is zero
+    mrb->c->ci->argc = 1;
+  }
   return mrb_nil_value();
 }
