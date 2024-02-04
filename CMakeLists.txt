@@ -6,6 +6,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 include(cmake/mruby.cmake)
+include(cmake/lightstorm.cmake)
 
 find_package(LLVM CONFIG REQUIRED)
 message("Using LLVM_CONFIG: ${LLVM_CONFIG}")
@@ -17,6 +18,11 @@ list(APPEND CMAKE_MODULE_PATH "${MLIR_DIR}")
 include(AddLLVM)
 include(TableGen)
 include(AddMLIR)
+
+set (LIGHTSTORM_CFLAGS -g)
+if (LIGHTSTORM_LTO)
+  set (LIGHTSTORM_CFLAGS -g -flto -O3)
+endif()
 
 add_subdirectory(lib)
 add_subdirectory(tools)
