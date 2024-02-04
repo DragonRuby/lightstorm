@@ -9,6 +9,9 @@ target_include_directories(lightstorm_runtime
 )
 target_compile_options(lightstorm_runtime PRIVATE ${LIGHTSTORM_CFLAGS})
 target_link_options(lightstorm_runtime PRIVATE ${LIGHTSTORM_CFLAGS})
+if (LIGHTSTORM_LTO)
+  target_compile_definitions(lightstorm_runtime PRIVATE LS_NO_CATCH)
+endif()
 add_dependencies(lightstorm_runtime mruby_static)
 
 add_library(lightstorm_runtime_main STATIC

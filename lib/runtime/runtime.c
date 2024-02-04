@@ -273,14 +273,33 @@ LIGHTSTORM_INLINE mrb_value ls_exec(mrb_state *mrb, mrb_value receiver, mrb_func
 }
 
 LIGHTSTORM_INLINE static mrb_sym ls_get_sym_new(mrb_state *mrb) {
-  mrb_state* v1 = mrb;
+  mrb_state *v1 = mrb;
   LS_INTERN_SYMBOL("new", 3);
 }
 
+#ifdef LS_NO_CATCH
+#define LS_TRY
+#define LS_CATCH
+#else
+#define LS_TRY                                                                                     \
+  struct mrb_jmpbuf *prev_jmp = mrb->jmp;                                                          \
+  struct mrb_jmpbuf c_jmp;                                                                         \
+  MRB_TRY(&c_jmp) {                                                                                \
+    mrb->jmp = &c_jmp;
+
+#define LS_CATCH                                                                                   \
+  mrb->jmp = prev_jmp;                                                                             \
+  }                                                                                                \
+  MRB_CATCH(&c_jmp) {                                                                              \
+    mrb_print_error(mrb);                                                                          \
+    abort();                                                                                       \
+  }                                                                                                \
+  MRB_END_EXC(&c_jmp);
+#endif
+
 LIGHTSTORM_INLINE mrb_value ls_send_argv(mrb_state *mrb, mrb_value recv, mrb_sym name, mrb_int argc,
                                          mrb_value *argv) {
-  struct mrb_jmpbuf *prev_jmp = mrb->jmp;
-  struct mrb_jmpbuf c_jmp;
+
   mrb_value ret = mrb_nil_value();
   mrb_value old_self = ls_load_self_value(mrb);
   if (mrb_nil_p(old_self)) {
@@ -295,16 +314,9 @@ LIGHTSTORM_INLINE mrb_value ls_send_argv(mrb_state *mrb, mrb_value recv, mrb_sym
       ls_store_self_value(mrb, old_self);
     }
   }
-  MRB_TRY(&c_jmp) {
-    mrb->jmp = &c_jmp;
-    ret = mrb_funcall_argv(mrb, recv, name, argc, argv);
-    mrb->jmp = prev_jmp;
-  }
-  MRB_CATCH(&c_jmp) {
-    mrb_print_error(mrb);
-    abort();
-  }
-  MRB_END_EXC(&c_jmp);
+  LS_TRY;
+  ret = mrb_funcall_argv(mrb, recv, name, argc, argv);
+  LS_CATCH;
   ls_store_self_value(mrb, old_self);
   return ret;
 }
