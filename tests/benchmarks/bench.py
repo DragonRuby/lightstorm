@@ -18,4 +18,4 @@ for idx in range(2, len(sys.argv), 2):
     ], capture_output=True)
     summary = r.stdout.decode('utf8').split("Summary")[-1].splitlines()
     summary = [s.strip() for s in summary]
-    print(" ".join(summary))
+    print(" ".join(summary).strip())
