@@ -273,11 +273,8 @@ LIGHTSTORM_INLINE mrb_value ls_exec(mrb_state *mrb, mrb_value receiver, mrb_func
 }
 
 LIGHTSTORM_INLINE static mrb_sym ls_get_sym_new(mrb_state *mrb) {
-  static mrb_sym sym = 0;
-  if (sym == 0) {
-    sym = mrb_intern(mrb, "new", 3);
-  }
-  return sym;
+  mrb_state* v1 = mrb;
+  LS_INTERN_SYMBOL("new", 3);
 }
 
 LIGHTSTORM_INLINE mrb_value ls_send_argv(mrb_state *mrb, mrb_value recv, mrb_sym name, mrb_int argc,

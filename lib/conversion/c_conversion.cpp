@@ -1,5 +1,6 @@
 #include "lightstorm/conversion/conversion.h"
 #include "lightstorm/dialect/rite.h"
+#include <mlir/Conversion/FuncToEmitC/FuncToEmitC.h>
 #include <mlir/Dialect/Arith/IR/Arith.h>
 #include <mlir/Dialect/ControlFlow/IR/ControlFlow.h>
 #include <mlir/Dialect/ControlFlow/IR/ControlFlowOps.h>
@@ -12,6 +13,8 @@
 #include <mlir/Pass/PassManager.h>
 #include <mlir/Target/Cpp/CppEmitter.h>
 #include <mlir/Transforms/DialectConversion.h>
+#include <sstream>
+#include <unordered_set>
 
 struct LightstormConversionContext {
   mlir::MLIRContext &context;
@@ -46,6 +49,40 @@ template <typename Op> struct LightstormConversionPattern : public mlir::Convers
 
   LightstormConversionContext &conversionContext;
 };
+
+static std::string cCompatibleSymName(const std::string &sym) {
+  std::string s;
+  std::stringstream ss(s);
+  for (auto c : sym) {
+    if (isalpha(c) || isnumber(c)) {
+      ss << c;
+      continue;
+    }
+    switch (c) {
+      // clang-format off
+      case '@': ss << "_at_"; break;
+      case '!': ss << "_excl_"; break;
+      case '<': ss << "_lt_"; break;
+      case '>': ss << "_gt_"; break;
+      case ':': ss << "_col_"; break;
+      case ' ': ss << "_space_"; break;
+      case '=': ss << "_eql_"; break;
+      case '%': ss << "_percent_"; break;
+      case '^': ss << "_caret_"; break;
+      case '$': ss << "_dollar_"; break;
+      case '&': ss << "_amp_"; break;
+      case '?': ss << "_q_"; break;
+      case '[': ss << "_sq_op_"; break;
+      case ']': ss << "_sq_cl_"; break;
+      case '-': ss << "_minus_"; break;
+      case '+': ss << "_plus_"; break;
+      case '*': ss << "_mul_"; break;
+      default: ss << c; break;
+      // clang-format on
+    }
+  }
+  return ss.str();
+}
 
 namespace lightstorm_conversion {
 
@@ -84,16 +121,9 @@ struct InternSymOpConversion : public LightstormConversionPattern<rite::InternSy
                                       llvm::ArrayRef<mlir::Type> operandTypes,
                                       mlir::Type resultType,
                                       mlir::ConversionPatternRewriter &rewriter) const final {
-    auto charType = mlir::emitc::OpaqueType::get(getContext(), "const char");
-    auto charPtrType = mlir::emitc::PointerType::get(charType);
-    auto quotedSymName = '"' + op.getMidAttr().getSymname() + '"';
-    auto symAttr = mlir::emitc::OpaqueAttr::get(getContext(), quotedSymName);
-    auto symName = rewriter.create<mlir::emitc::ConstantOp>(op->getLoc(), charPtrType, symAttr);
-    auto sizeAttr = rewriter.getI64IntegerAttr(op.getMidAttr().getSymname().size());
-    auto size =
-        rewriter.create<mlir::emitc::ConstantOp>(op->getLoc(), sizeAttr.getType(), sizeAttr);
-    mlir::ValueRange mrbInternOperands{ operands[0], symName, size };
-    auto mrbSym = opaqueCallOp(rewriter, op->getLoc(), resultType, "mrb_intern", mrbInternOperands);
+    auto symName = cCompatibleSymName(op.getMidAttr().getSymname());
+    auto functionName = "_ls_sym_getter_" + symName;
+    auto mrbSym = opaqueCallOp(rewriter, op->getLoc(), resultType, functionName, operands.front());
     rewriter.replaceOp(op, mrbSym.getResult(0));
     return mlir::success();
   }
@@ -221,15 +251,61 @@ template <typename Op> struct KindOpConversion : public LightstormConversionPatt
   patterns.add<lightstorm_conversion::MethodRefOpConversion<Op>>(loweringContext,                  \
                                                                  std::string("" #function))
 
+namespace lightstorm_conversion_passes {
+// Creates a getter function for each symbol mentioned in any function
+// The getter is used later during the lowering/conversion phase
+class ExtractSymIntern
+    : public mlir::PassWrapper<ExtractSymIntern, mlir::OperationPass<mlir::ModuleOp>> {
+public:
+  explicit ExtractSymIntern(mlir::TypeConverter &typeConverter) : typeConverter(typeConverter) {}
+
+private:
+  void runOnOperation() override {
+    auto module = getOperation();
+    std::unordered_set<std::string> symbols;
+    module->walk([&](rite::InternSymOp op) { symbols.insert(op.getMidAttr().getSymname()); });
+
+    mlir::OpBuilder builder(module.getBodyRegion());
+    for (auto &symbol : symbols) {
+      auto symName = cCompatibleSymName(symbol);
+      auto functionName = "_ls_sym_getter_" + symName;
+
+      auto symType = typeConverter.convertType(rite::mrb_symType::get(&getContext()));
+      auto mrbState = typeConverter.convertType(rite::mrb_stateType::get(&getContext()));
+      auto functionType = builder.getFunctionType({ mrbState }, { symType });
+      auto function =
+          builder.create<mlir::emitc::FuncOp>(module->getLoc(), functionName, functionType);
+      function.setVisibility(mlir::SymbolTable::Visibility::Private);
+      mlir::OpBuilder::InsertionGuard guard(builder);
+      builder.setInsertionPointToStart(function.addEntryBlock());
+
+      auto quotedSymName = '"' + symbol + '"';
+
+      std::string s;
+      std::stringstream macro(s);
+      macro << "LS_INTERN_SYMBOL(" << quotedSymName << ", " << std::to_string(symbol.size())
+            << ");";
+
+      builder.create<mlir::emitc::VerbatimOp>(function->getLoc(), macro.str());
+
+      auto fakeAttr = mlir::emitc::OpaqueAttr::get(&getContext(), "0");
+      auto fakeSym = builder.create<mlir::emitc::ConstantOp>(function->getLoc(), symType, fakeAttr);
+      builder.create<mlir::emitc::ReturnOp>(function->getLoc(), fakeSym);
+    }
+  }
+  mlir::TypeConverter &typeConverter;
+};
+} // namespace lightstorm_conversion_passes
+
 void lightstorm::convertRiteToEmitC(mlir::MLIRContext &context, mlir::ModuleOp module) {
+  mlir::TypeConverter typeConverter;
+
   mlir::ConversionTarget target(context);
   target.addLegalOp<mlir::ModuleOp>();
   target.addLegalOp<mlir::arith::ConstantOp>();
   target.addLegalDialect<mlir::func::FuncDialect>();
   target.addLegalDialect<mlir::BuiltinDialect>();
   target.addLegalDialect<mlir::emitc::EmitCDialect>();
-
-  mlir::TypeConverter typeConverter;
 
   target.addDynamicallyLegalDialect<mlir::cf::ControlFlowDialect>(
       [&](mlir::Operation *op) { return typeConverter.isLegal(op->getOperandTypes()); });
@@ -265,12 +341,21 @@ void lightstorm::convertRiteToEmitC(mlir::MLIRContext &context, mlir::ModuleOp m
     return type;
   });
 
+  mlir::PassManager pipeline(&context);
+  pipeline.addPass(std::make_unique<lightstorm_conversion_passes::ExtractSymIntern>(typeConverter));
+  if (mlir::failed(pipeline.run(module))) {
+    module.print(llvm::errs());
+    llvm::errs() << "Cannot extract mrb_syms\n";
+    exit(1);
+  }
+
   mlir::RewritePatternSet patterns(&context);
 
   LightstormConversionContext loweringContext{ context, typeConverter };
 
   mlir::populateAnyFunctionOpInterfaceTypeConversionPattern(patterns, typeConverter);
   mlir::populateBranchOpInterfaceTypeConversionPattern(patterns, typeConverter);
+  mlir::populateFuncToEmitCPatterns(patterns);
   patterns.add<
       ///
       lightstorm_conversion::InternSymOpConversion,
