@@ -8,7 +8,7 @@ Get the sources
 
 ```bash
 git clone git@github.com:DragonRuby/lightstorm.git --recursive
-git clone git@github.com:llvm/llvm-project.git -b release/17.x
+git clone git@github.com:llvm/llvm-project.git; cd llvm-project; git checkout 256200732111afd03bb7437564f3a3d77c0ec3f5
 ```
 
 Create toolchain dir
@@ -45,11 +45,11 @@ cmake -G Ninja -DCMAKE_PREFIX_PATH=/opt/lightstorm.toolchain.dir/llvm \
   ../lightstorm
 ```
 
-Build a test (`tests/end2end/loads.rb`):
+Build a test (`tests/integration/loads.rb`):
 
 ```bash
 > ninja loads.rb.exe
-> ./tests/end2end/loads.rb.exe
+> ../lightstorm/tests/integration/Output/loads.rb.tmp.exe
 1
 -1
 42
@@ -59,7 +59,25 @@ Build a test (`tests/end2end/loads.rb`):
 1000000
 -1000000
 
+42.0
+a string 42
 true
 false
 main
+hello
+[:a_sym]
+```
+
+Run integration tests
+
+```bash
+pip install lit filecheck
+ninja run-integration-tests
+```
+
+Run benchmarks
+
+```bash
+brew install hyperfine
+ninja run-benchmarks
 ```
