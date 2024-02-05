@@ -275,6 +275,7 @@ private:
       auto functionType = builder.getFunctionType({ mrbState }, { symType });
       auto function =
           builder.create<mlir::emitc::FuncOp>(module->getLoc(), functionName, functionType);
+      function.setSpecifiersAttr(builder.getStrArrayAttr({"LIGHTSTORM_INLINE", "static"}));
       function.setVisibility(mlir::SymbolTable::Visibility::Private);
       mlir::OpBuilder::InsertionGuard guard(builder);
       builder.setInsertionPointToStart(function.addEntryBlock());

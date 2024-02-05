@@ -197,7 +197,7 @@ def CmpOp : Rite_Op<"cmp", [Pure]> {
   let arguments = (ins StateType:$mrb, ValueType:$lhs, ValueType:$rhs, CmpKind:$kind);
   let results = (outs ValueType);
   let assemblyFormat = [{
-    `(` operands `)` attr-dict `->` type(results)
+    `[` $kind `]` `(` operands `)` attr-dict `->` type(results)
   }];
 }
 
@@ -346,6 +346,9 @@ def BranchPredicateOp : Rite_Op<"branch_predicate"> {
   let summary = "branch_predicate";
   let arguments = (ins ValueType:$value, BranchPredicateKind:$kind);
   let results = (outs I1);
+  let assemblyFormat = [{
+    `[` $kind `]` `(` operands `)` attr-dict `->` type(results)
+  }];
 }
 
 ///
@@ -373,7 +376,7 @@ def ArithOp : Rite_Op<"arith"> {
   let arguments = (ins StateType:$mrb, ValueType:$lhs, ValueType:$rhs, ArithKind:$kind);
   let results = (outs ValueType);
   let assemblyFormat = [{
-    `(` operands `)` attr-dict `->` type(results)
+    `[` $kind `]` `(` operands `)` attr-dict `->` type(results)
   }];
 }
 
