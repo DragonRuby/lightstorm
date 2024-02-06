@@ -4,6 +4,11 @@ Simplified version of Firestorm targeting C instead of machine code directly.
 
 # Local Build Setup
 
+Brew:
+```
+brew install ninja cmake ccache hyperfine
+```
+
 Get the sources
 
 ```bash
@@ -33,6 +38,10 @@ cmake -G Ninja \
   -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
   -DCMAKE_INSTALL_PREFIX=/opt/lightstorm.toolchain.dir/llvm \
   ../llvm-project/llvm
+
+ninja
+ninja install
+
 cd ..
 ```
 
@@ -43,6 +52,8 @@ mkdir lightstorm-build; cd lightstorm-build
 cmake -G Ninja -DCMAKE_PREFIX_PATH=/opt/lightstorm.toolchain.dir/llvm \
   -DCMAKE_INSTALL_PREFIX=/opt/lightstorm.toolchain.dir/lightstorm \
   ../lightstorm
+
+ninja
 ```
 
 Build a test (`tests/integration/loads.rb`):
@@ -78,6 +89,5 @@ ninja run-integration-tests
 Run benchmarks
 
 ```bash
-brew install hyperfine
 ninja run-benchmarks
 ```
