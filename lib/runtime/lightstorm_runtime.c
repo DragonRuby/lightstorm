@@ -1,4 +1,4 @@
-#include "lightstorm/runtime/runtime.h"
+#include "lightstorm/runtime/lightstorm_runtime.h"
 #include <assert.h>
 #include <mruby/array.h>
 #include <mruby/class.h>

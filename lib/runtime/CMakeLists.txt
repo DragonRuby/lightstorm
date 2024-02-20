@@ -1,5 +1,5 @@
 add_library(lightstorm_runtime STATIC
-  runtime.c
+  lightstorm_runtime.c
 )
 target_include_directories(lightstorm_runtime
   PUBLIC
@@ -15,7 +15,7 @@ endif()
 add_dependencies(lightstorm_runtime mruby_static)
 
 add_library(lightstorm_runtime_main STATIC
-  runtime_main.c
+  lightstorm_runtime_main.c
 )
 target_include_directories(lightstorm_runtime_main
   PUBLIC

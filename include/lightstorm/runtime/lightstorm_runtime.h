@@ -197,6 +197,6 @@ mrb_value ls_enter(mrb_state *mrb, mrb_int requiredArgs);
 #define LS_INTERN_SYMBOL(value, len)                                                               \
   static mrb_sym sym = 0;                                                                          \
   if (sym == 0) {                                                                                  \
-    sym = mrb_intern(v1, value, len);                                                             \
+    sym = mrb_intern(v1, value, len);                                                              \
   }                                                                                                \
   return sym;
