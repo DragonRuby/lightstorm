@@ -8,6 +8,7 @@
 #include <mlir/Dialect/Index/IR/IndexDialect.h>
 
 #include "lightstorm/compiler/compiler.h"
+#include "lightstorm/config/config.h"
 #include "lightstorm/conversion/conversion.h"
 #include "lightstorm/dialect/rite.h"
 
@@ -18,6 +19,9 @@ llvm::cl::opt<std::string> Input(llvm::cl::Positional, llvm::cl::Required,
 
 llvm::cl::opt<std::string> Output("o", llvm::cl::Optional, llvm::cl::desc("Output file"),
                                   llvm::cl::cat(LightstormCategory));
+
+llvm::cl::opt<bool> Verbose("v", llvm::cl::Optional, llvm::cl::desc("Verbose mode"),
+                            llvm::cl::cat(LightstormCategory));
 
 int main(int argc, char **argv) {
   llvm::llvm_shutdown_obj shutdownGuard;
@@ -46,19 +50,25 @@ int main(int argc, char **argv) {
   mlir::MLIRContext context(registry);
   context.loadAllAvailableDialects();
 
-  lightstorm::Compiler compiler;
-  auto module = compiler.compileSourceFile(context, Input.getValue());
+  lightstorm::LightstormConfig config;
+  config.verbose = Verbose.getValue();
+
+  auto module = lightstorm::compileSourceFile(config, context, Input.getValue());
   assert(module && "Could not convert Ruby to MLIR");
 
-  module->print(llvm::errs());
+  if (config.verbose) {
+    module->print(llvm::errs());
+  }
 
-  lightstorm::convertRiteToEmitC(context, *module);
+  lightstorm::convertRiteToEmitC(config, context, *module);
 
-  module->print(llvm::errs());
+  if (config.verbose) {
+    module->print(llvm::errs());
+  }
 
   std::filesystem::path outputFile(Output.getValue());
   if (outputFile.empty()) {
-    lightstorm::convertMLIRToC(context, *module, llvm::errs());
+    lightstorm::convertMLIRToC(config, context, *module, llvm::errs());
   } else {
     llvm::raw_fd_stream out(outputFile.string(), ec);
     if (ec) {
@@ -66,7 +76,7 @@ int main(int argc, char **argv) {
       return 1;
     }
 
-    lightstorm::convertMLIRToC(context, *module, out);
+    lightstorm::convertMLIRToC(config, context, *module, out);
   }
   return 0;
 }

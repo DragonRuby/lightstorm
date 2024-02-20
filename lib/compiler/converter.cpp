@@ -148,9 +148,9 @@ static void createBody(mlir::MLIRContext &context, mrb_state *mrb, mlir::func::F
 
     addressMapping[pc_offset] = body;
 
-    builder.create<rite::LocationOp>(
-        location,
-        builder.getStringAttr(location.getFilename().str() + ":" + std::to_string(location.getLine())));
+    builder.create<rite::LocationOp>(location,
+                                     builder.getStringAttr(location.getFilename().str() + ":" +
+                                                           std::to_string(location.getLine())));
 
     auto symbol = [&](mrb_sym sym) {
       auto attr = rite::mrb_symAttr::get(&context, mrb_sym_name(mrb, sym));
@@ -1004,9 +1004,12 @@ static void createBody(mlir::MLIRContext &context, mrb_state *mrb, mlir::func::F
   }
 }
 
-mlir::ModuleOp lightstorm::convertProcToMLIR(mlir::MLIRContext &context, mrb_state *mrb,
+mlir::ModuleOp lightstorm::convertProcToMLIR(const LightstormConfig &config,
+                                             mlir::MLIRContext &context, mrb_state *mrb,
                                              struct RProc *proc) {
-  mrb_codedump_all(mrb, proc);
+  if (config.verbose) {
+    mrb_codedump_all(mrb, proc);
+  }
 
   const char *filename = mrb_debug_get_filename(mrb, proc->body.irep, 0);
   auto line = mrb_debug_get_line(mrb, proc->body.irep, 0);

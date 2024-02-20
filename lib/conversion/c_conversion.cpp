@@ -275,7 +275,7 @@ private:
       auto functionType = builder.getFunctionType({ mrbState }, { symType });
       auto function =
           builder.create<mlir::emitc::FuncOp>(module->getLoc(), functionName, functionType);
-      function.setSpecifiersAttr(builder.getStrArrayAttr({"LIGHTSTORM_INLINE", "static"}));
+      function.setSpecifiersAttr(builder.getStrArrayAttr({ "LIGHTSTORM_INLINE", "static" }));
       function.setVisibility(mlir::SymbolTable::Visibility::Private);
       mlir::OpBuilder::InsertionGuard guard(builder);
       builder.setInsertionPointToStart(function.addEntryBlock());
@@ -298,7 +298,8 @@ private:
 };
 } // namespace lightstorm_conversion_passes
 
-void lightstorm::convertRiteToEmitC(mlir::MLIRContext &context, mlir::ModuleOp module) {
+void lightstorm::convertRiteToEmitC(const LightstormConfig &config, mlir::MLIRContext &context,
+                                    mlir::ModuleOp module) {
   mlir::TypeConverter typeConverter;
 
   mlir::ConversionTarget target(context);
@@ -424,8 +425,8 @@ void lightstorm::convertRiteToEmitC(mlir::MLIRContext &context, mlir::ModuleOp m
   }
 }
 
-void lightstorm::convertMLIRToC(mlir::MLIRContext &context, mlir::ModuleOp module,
-                                llvm::raw_ostream &out) {
+void lightstorm::convertMLIRToC(const LightstormConfig &config, mlir::MLIRContext &context,
+                                mlir::ModuleOp module, llvm::raw_ostream &out) {
   mlir::OpBuilder b(module.getBodyRegion());
   b.create<mlir::emitc::IncludeOp>(module->getLoc(), "lightstorm/runtime/runtime.h");
 

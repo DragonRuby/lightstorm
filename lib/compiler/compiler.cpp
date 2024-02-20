@@ -10,8 +10,9 @@
 
 using namespace lightstorm;
 
-std::optional<mlir::ModuleOp> Compiler::compileSourceFile(mlir::MLIRContext &context,
-                                                          const std::filesystem::path &file_path) {
+std::optional<mlir::ModuleOp>
+lightstorm::compileSourceFile(const LightstormConfig &config, mlir::MLIRContext &context,
+                              const std::filesystem::path &file_path) {
   assert(exists(file_path) && "Cannot compile file");
   mrb_state *mrb = mrb_open();
   assert(mrb && "Out of memory?");
@@ -50,7 +51,7 @@ std::optional<mlir::ModuleOp> Compiler::compileSourceFile(mlir::MLIRContext &con
 
   struct RProc *proc = mrb_generate_code(mrb, p);
   assert(proc && "Could not generate code");
-  auto module = convertProcToMLIR(context, mrb, proc);
+  auto module = convertProcToMLIR(config, context, mrb, proc);
   fclose(f);
   mrb_parser_free(p);
   mrbc_context_free(mrb, mrbc);
