@@ -20,6 +20,11 @@ llvm::cl::opt<std::string> Input(llvm::cl::Positional, llvm::cl::Required,
 llvm::cl::opt<std::string> Output("o", llvm::cl::Optional, llvm::cl::desc("Output file"),
                                   llvm::cl::cat(LightstormCategory));
 
+llvm::cl::opt<std::string> EntryPoint("entry", llvm::cl::Optional,
+                                      llvm::cl::desc("Entry point function"),
+                                      llvm::cl::init("lightstorm_top"),
+                                      llvm::cl::cat(LightstormCategory));
+
 llvm::cl::opt<bool> Verbose("v", llvm::cl::Optional, llvm::cl::desc("Verbose mode"),
                             llvm::cl::cat(LightstormCategory));
 
@@ -52,6 +57,7 @@ int main(int argc, char **argv) {
 
   lightstorm::LightstormConfig config;
   config.verbose = Verbose.getValue();
+  config.entry = EntryPoint.getValue();
 
   auto module = lightstorm::compileSourceFile(config, context, Input.getValue());
   assert(module && "Could not convert Ruby to MLIR");

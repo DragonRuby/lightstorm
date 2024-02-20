@@ -1018,7 +1018,7 @@ mlir::ModuleOp lightstorm::convertProcToMLIR(const LightstormConfig &config,
   std::unordered_map<const mrb_irep *, mlir::func::FuncOp> functions;
   populatePrototypes(context, functions, mrb, proc->body.irep);
   auto &top = functions[proc->body.irep];
-  top.setName("lightstorm_top");
+  top.setName(config.entry);
   top.setVisibility(mlir::SymbolTable::Visibility::Public);
 
   auto module = mlir::ModuleOp::create(moduleLocation, filename);
