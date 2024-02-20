@@ -14,3 +14,4 @@ target_include_directories(lightstorm
   ${MLIR_INCLUDE_DIRS}
 )
 add_dependencies(lightstorm mruby_binary)
+install(TARGETS lightstorm)
