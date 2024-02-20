@@ -25,6 +25,11 @@ llvm::cl::opt<std::string> EntryPoint("entry", llvm::cl::Optional,
                                       llvm::cl::init("lightstorm_top"),
                                       llvm::cl::cat(LightstormCategory));
 
+llvm::cl::opt<std::string> RuntimeLocation("runtime-dir", llvm::cl::Optional,
+                                           llvm::cl::desc("Directory with lightstorm_runtime.h"),
+                                           llvm::cl::init("lightstorm/runtime"),
+                                           llvm::cl::cat(LightstormCategory));
+
 llvm::cl::opt<bool> Verbose("v", llvm::cl::Optional, llvm::cl::desc("Verbose mode"),
                             llvm::cl::cat(LightstormCategory));
 
@@ -58,6 +63,7 @@ int main(int argc, char **argv) {
   lightstorm::LightstormConfig config;
   config.verbose = Verbose.getValue();
   config.entry = EntryPoint.getValue();
+  config.runtime_header_location = RuntimeLocation.getValue();
 
   auto module = lightstorm::compileSourceFile(config, context, Input.getValue());
   assert(module && "Could not convert Ruby to MLIR");

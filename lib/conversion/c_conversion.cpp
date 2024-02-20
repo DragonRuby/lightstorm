@@ -428,7 +428,8 @@ void lightstorm::convertRiteToEmitC(const LightstormConfig &config, mlir::MLIRCo
 void lightstorm::convertMLIRToC(const LightstormConfig &config, mlir::MLIRContext &context,
                                 mlir::ModuleOp module, llvm::raw_ostream &out) {
   mlir::OpBuilder b(module.getBodyRegion());
-  b.create<mlir::emitc::IncludeOp>(module->getLoc(), "lightstorm/runtime/lightstorm_runtime.h");
+  b.create<mlir::emitc::IncludeOp>(module->getLoc(),
+                                   config.runtime_header_location + "/lightstorm_runtime.h");
 
   if (mlir::failed(mlir::emitc::translateToCpp(module, out, true))) {
     llvm::errs() << "Cannot convert MLIR to C\n";

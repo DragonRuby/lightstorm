@@ -4,6 +4,7 @@ add_library(lightstorm_runtime STATIC
 target_include_directories(lightstorm_runtime
   PUBLIC
   ${CMAKE_SOURCE_DIR}/include
+  ${CMAKE_SOURCE_DIR}/include/lightstorm/runtime
   ${CMAKE_SOURCE_DIR}/third_party/mruby/include
   ${CMAKE_SOURCE_DIR}/third_party/mruby/build/host/include
 )
