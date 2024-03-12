@@ -235,8 +235,29 @@ template <typename Op> struct KindOpConversion : public LightstormConversionPatt
                                       llvm::ArrayRef<mlir::Type> operandTypes,
                                       mlir::Type resultType,
                                       mlir::ConversionPatternRewriter &rewriter) const final {
-    auto newOp = opaqueCallOp(rewriter, op->getLoc(), resultType, kindName(op.getKind()), operands);
+    auto kind = kindName(op.getKind());
+    if constexpr (std::is_same<Op, rite::ArithNoEscapeOp>::value) {
+      kind += "_no_escape";
+    }
+    auto newOp = opaqueCallOp(rewriter, op->getLoc(), resultType, kind, operands);
     rewriter.replaceOp(op, newOp.getResult(0));
+    return mlir::success();
+  }
+};
+
+struct StackAllocationOpConversion : public LightstormConversionPattern<rite::StackAllocationOp> {
+  explicit StackAllocationOpConversion(LightstormConversionContext &conversionContext)
+      : LightstormConversionPattern(conversionContext) {}
+
+  mlir::LogicalResult matchAndRewrite(rite::StackAllocationOp op, llvm::ArrayRef<mlir::Value> operands,
+                                      llvm::ArrayRef<mlir::Type> operandTypes,
+                                      mlir::Type resultType,
+                                      mlir::ConversionPatternRewriter &rewriter) const final {
+    assert(resultType.isa<mlir::emitc::PointerType>());
+    auto stackValueType = resultType.cast<mlir::emitc::PointerType>().getPointee();
+    auto stackValue = opaqueCallOp(rewriter, op->getLoc(), stackValueType, "LS_ALLOC_STACK_VALUE", operands);
+    auto addrOf = rewriter.create<mlir::emitc::ApplyOp>(op->getLoc(), resultType, rewriter.getStringAttr("&"), stackValue.getResult(0));
+    rewriter.replaceOp(op, addrOf->getResults());
     return mlir::success();
   }
 };
@@ -326,6 +347,9 @@ void lightstorm::convertRiteToEmitC(const LightstormConfig &config, mlir::MLIRCo
       auto opaque = mlir::emitc::OpaqueType::get(&context, "mrb_state");
       return mlir::emitc::PointerType::get(opaque);
     }
+    if (type.isa<rite::stack_allocated_valueType>()) {
+      return mlir::emitc::PointerType::get(mlir::emitc::OpaqueType::get(&context, "struct RFloat"));
+    }
     if (type.isa<mlir::FunctionType>()) {
       auto functionType = type.cast<mlir::FunctionType>();
       llvm::SmallVector<mlir::Type> results;
@@ -364,8 +388,10 @@ void lightstorm::convertRiteToEmitC(const LightstormConfig &config, mlir::MLIRCo
       lightstorm_conversion::LoadStringOpConversion,
       lightstorm_conversion::ReturnOpConversion,
       lightstorm_conversion::LocationOpConversion,
+      lightstorm_conversion::StackAllocationOpConversion,
       lightstorm_conversion::KindOpConversion<rite::BranchPredicateOp>,
       lightstorm_conversion::KindOpConversion<rite::ArithOp>,
+      lightstorm_conversion::KindOpConversion<rite::ArithNoEscapeOp>,
       lightstorm_conversion::KindOpConversion<rite::CmpOp>,
       lightstorm_conversion::KindOpConversion<rite::LoadValueOp>
 

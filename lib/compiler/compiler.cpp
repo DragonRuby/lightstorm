@@ -63,7 +63,6 @@ lightstorm::compileSourceFile(const LightstormConfig &config, mlir::MLIRContext 
 
   mlir::PassManager construction(&context);
   construction.addPass(mlir::createMem2Reg());
-  construction.addPass(mlir::createCSEPass());
   if (construction.run(module).failed()) {
     module.print(llvm::errs());
     llvm::errs() << "\nFailed to run passes\n";

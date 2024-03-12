@@ -23,6 +23,7 @@ def StateType : RiteType<"mrb_state"> {}
 def ValueType : RiteType<"mrb_value"> {}
 def ValuePtrType : RiteType<"mrb_value_ptr"> {}
 def SymType : RiteType<"mrb_sym"> {}
+def SAValueType : RiteType<"stack_allocated_value"> {}
 
 class Rite_Attr<string name, string attrMnemonic, list<Trait> traits = []>
     : AttrDef<Rite_Dialect, name, traits> {
@@ -48,7 +49,7 @@ def LocationOp : Rite_Op<"location"> {
   let summary = "Stores the location as a string";
   let arguments = (ins StrAttr:$location);
   let assemblyFormat = [{
-    `(` $location `)` attr-dict `->` type(results)
+    `(` $location `)` attr-dict
   }];
 }
 
@@ -312,7 +313,7 @@ def LoadOp : Rite_Op<"load", [DeclareOpInterfaceMethods<PromotableMemOpInterface
   let arguments = (ins ValuePtrType:$slot);
   let results = (outs ValueType);
   let assemblyFormat = [{
-    `(` $slot `)` attr-dict `->` type(results)
+    `(` operands `)` attr-dict `->` type(results)
   }];
 }
 
@@ -320,7 +321,16 @@ def StoreOp : Rite_Op<"store", [DeclareOpInterfaceMethods<PromotableMemOpInterfa
   let summary = "Store value to a virtual stack ref";
   let arguments = (ins ValuePtrType:$slot, ValueType:$value);
   let assemblyFormat = [{
-    `(` $slot `,` $value  `)` attr-dict
+    `(` operands `)` attr-dict
+  }];
+}
+
+def StackAllocationOp : Rite_Op<"stack_allocation"> {
+  let summary = "Allocate mrb_value slot on the stack";
+  let arguments = (ins StateType:$mrb);
+  let results = (outs SAValueType);
+  let assemblyFormat = [{
+    `(` operands `)` attr-dict `->` type(results)
   }];
 }
 
@@ -374,6 +384,15 @@ def ArithKind : I32EnumAttr<
 def ArithOp : Rite_Op<"arith"> {
   let summary = "arith";
   let arguments = (ins StateType:$mrb, ValueType:$lhs, ValueType:$rhs, ArithKind:$kind);
+  let results = (outs ValueType);
+  let assemblyFormat = [{
+    `[` $kind `]` `(` operands `)` attr-dict `->` type(results)
+  }];
+}
+
+def ArithNoEscapeOp : Rite_Op<"arith.no_escape"> {
+  let summary = "arith.no_escape";
+  let arguments = (ins StateType:$mrb, ValueType:$lhs, ValueType:$rhs, SAValueType:$stack_slot, ArithKind:$kind);
   let results = (outs ValueType);
   let assemblyFormat = [{
     `[` $kind `]` `(` operands `)` attr-dict `->` type(results)

@@ -78,6 +78,11 @@ mrb_value ls_arith_sub(mrb_state *mrb, mrb_value lhs, mrb_value rhs);
 mrb_value ls_arith_mul(mrb_state *mrb, mrb_value lhs, mrb_value rhs);
 mrb_value ls_arith_div(mrb_state *mrb, mrb_value lhs, mrb_value rhs);
 
+mrb_value ls_arith_add_no_escape(mrb_state *mrb, mrb_value lhs, mrb_value rhs, struct RFloat *slot);
+mrb_value ls_arith_sub_no_escape(mrb_state *mrb, mrb_value lhs, mrb_value rhs, struct RFloat *slot);
+mrb_value ls_arith_mul_no_escape(mrb_state *mrb, mrb_value lhs, mrb_value rhs, struct RFloat *slot);
+mrb_value ls_arith_div_no_escape(mrb_state *mrb, mrb_value lhs, mrb_value rhs, struct RFloat *slot);
+
 LIGHTSTORM_INLINE mrb_value ls_load_local_variable(mrb_state *mrb, int64_t idx) {
   return mrb->c->ci->stack[idx];
 }
@@ -200,3 +205,5 @@ mrb_value ls_enter(mrb_state *mrb, mrb_int requiredArgs);
     sym = mrb_intern(v1, value, len);                                                              \
   }                                                                                                \
   return sym;
+
+#define LS_ALLOC_STACK_VALUE(mrb) (struct RFloat){ mrb->float_class, NULL, MRB_TT_FLOAT }

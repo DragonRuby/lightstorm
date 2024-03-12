@@ -66,6 +66,15 @@ LIGHTSTORM_INLINE mrb_value ls_compare_eq(mrb_state *mrb, mrb_value lhs, mrb_val
 
 #pragma mark - Arithmetic
 
+LIGHTSTORM_INLINE static mrb_value ls_float_value_inplace(mrb_state *mrb, mrb_float f,
+                                                          struct RFloat *slot) {
+  union mrb_value_ v;
+  v.fp = slot;
+  v.fp->f = f;
+  MRB_SET_FROZEN_FLAG(v.bp);
+  return v.value;
+}
+
 #define OP_MATH(op_name, lhs, rhs)                                                                 \
   /* need to check if op is overridden */                                                          \
   switch (TYPES2(mrb_type(lhs), mrb_type(rhs))) {                                                  \
@@ -93,7 +102,7 @@ LIGHTSTORM_INLINE mrb_value ls_compare_eq(mrb_state *mrb, mrb_value lhs, mrb_val
 #define OP_MATH_CASE_FLOAT(op_name, t1, t2)                                                        \
   case TYPES2(OP_MATH_TT_##t1, OP_MATH_TT_##t2): {                                                 \
     mrb_float z = mrb_##t1(lhs) OP_MATH_OP_##op_name mrb_##t2(rhs);                                \
-    return mrb_float_value(mrb, z);                                                                \
+    return LS_MATH_FLOAT_VALUE(mrb, z);                                                            \
   }
 
 #define OP_MATH_OVERFLOW_INT()                                                                     \
@@ -115,6 +124,40 @@ LIGHTSTORM_INLINE mrb_value ls_compare_eq(mrb_state *mrb, mrb_value lhs, mrb_val
 #define OP_MATH_OP_mul *
 #define OP_MATH_TT_integer MRB_TT_INTEGER
 #define OP_MATH_TT_float MRB_TT_FLOAT
+#define OP_MATH_DIV(mrb, lhs, rhs)                                                                 \
+  mrb_int mrb_num_div_int(mrb_state *mrb, mrb_int x, mrb_int y);                                   \
+  mrb_float mrb_num_div_flo(mrb_state *mrb, mrb_float x, mrb_float y);                             \
+  mrb_float x, y, f;                                                                               \
+  switch (TYPES2(mrb_type(lhs), mrb_type(rhs))) {                                                  \
+  case TYPES2(MRB_TT_INTEGER, MRB_TT_INTEGER): {                                                   \
+    mrb_int xi = mrb_integer(lhs);                                                                 \
+    mrb_int yi = mrb_integer(rhs);                                                                 \
+    mrb_int div = mrb_num_div_int(mrb, xi, yi);                                                    \
+    return mrb_int_value(mrb, div);                                                                \
+  } break;                                                                                         \
+  case TYPES2(MRB_TT_INTEGER, MRB_TT_FLOAT):                                                       \
+    x = (mrb_float)mrb_integer(lhs);                                                               \
+    y = mrb_float(rhs);                                                                            \
+    break;                                                                                         \
+  case TYPES2(MRB_TT_FLOAT, MRB_TT_INTEGER):                                                       \
+    x = mrb_float(lhs);                                                                            \
+    y = (mrb_float)mrb_integer(rhs);                                                               \
+    break;                                                                                         \
+  case TYPES2(MRB_TT_FLOAT, MRB_TT_FLOAT):                                                         \
+    x = mrb_float(lhs);                                                                            \
+    y = mrb_float(rhs);                                                                            \
+    break;                                                                                         \
+  default: {                                                                                       \
+    mrb_sym mid = MRB_OPSYM(div);                                                                  \
+    mrb_value ret = ls_send_argv(mrb, lhs, mid, 1, &rhs);                                          \
+    return ret;                                                                                    \
+  }                                                                                                \
+  }                                                                                                \
+                                                                                                   \
+  f = mrb_num_div_flo(mrb, x, y);                                                                  \
+  return LS_MATH_FLOAT_VALUE(mrb, f);
+
+#define LS_MATH_FLOAT_VALUE(mrb, f) mrb_float_value(mrb, f)
 
 LIGHTSTORM_INLINE mrb_value ls_arith_add(mrb_state *mrb, mrb_value lhs, mrb_value rhs) {
   OP_MATH(add, lhs, rhs);
@@ -128,39 +171,31 @@ LIGHTSTORM_INLINE mrb_value ls_arith_mul(mrb_state *mrb, mrb_value lhs, mrb_valu
   OP_MATH(mul, lhs, rhs);
 }
 
-LIGHTSTORM_INLINE mrb_value ls_arith_div(mrb_state *mrb, mrb_value lhs, mrb_value rhs) {
-  mrb_int mrb_num_div_int(mrb_state * mrb, mrb_int x, mrb_int y);
-  mrb_float mrb_num_div_flo(mrb_state * mrb, mrb_float x, mrb_float y);
-  mrb_float x, y, f;
-  switch (TYPES2(mrb_type(lhs), mrb_type(rhs))) {
-  case TYPES2(MRB_TT_INTEGER, MRB_TT_INTEGER): {
-    mrb_int xi = mrb_integer(lhs);
-    mrb_int yi = mrb_integer(rhs);
-    mrb_int div = mrb_num_div_int(mrb, xi, yi);
-    return mrb_int_value(mrb, div);
-  } break;
-  case TYPES2(MRB_TT_INTEGER, MRB_TT_FLOAT):
-    x = (mrb_float)mrb_integer(lhs);
-    y = mrb_float(rhs);
-    break;
-  case TYPES2(MRB_TT_FLOAT, MRB_TT_INTEGER):
-    x = mrb_float(lhs);
-    y = (mrb_float)mrb_integer(rhs);
-    break;
-  case TYPES2(MRB_TT_FLOAT, MRB_TT_FLOAT):
-    x = mrb_float(lhs);
-    y = mrb_float(rhs);
-    break;
-  default: {
-    mrb_sym mid = MRB_OPSYM(div);
-    mrb_value ret = ls_send_argv(mrb, lhs, mid, 1, &rhs);
-    return ret;
-  }
-  }
+LIGHTSTORM_INLINE mrb_value ls_arith_div(mrb_state *mrb, mrb_value lhs,
+                                         mrb_value rhs){ OP_MATH_DIV(mrb, lhs, rhs) }
+#undef LS_MATH_FLOAT_VALUE
 
-  f = mrb_num_div_flo(mrb, x, y);
-  return mrb_float_value(mrb, f);
+#define LS_MATH_FLOAT_VALUE(mrb, f) ls_float_value_inplace(mrb, f, slot)
+
+LIGHTSTORM_INLINE mrb_value
+    ls_arith_add_no_escape(mrb_state *mrb, mrb_value lhs, mrb_value rhs, struct RFloat *slot) {
+  OP_MATH(add, lhs, rhs);
 }
+
+LIGHTSTORM_INLINE mrb_value ls_arith_sub_no_escape(mrb_state *mrb, mrb_value lhs, mrb_value rhs,
+                                                   struct RFloat *slot) {
+  OP_MATH(sub, lhs, rhs);
+}
+
+LIGHTSTORM_INLINE mrb_value ls_arith_mul_no_escape(mrb_state *mrb, mrb_value lhs, mrb_value rhs,
+                                                   struct RFloat *slot) {
+  OP_MATH(mul, lhs, rhs);
+}
+
+LIGHTSTORM_INLINE mrb_value ls_arith_div_no_escape(mrb_state *mrb, mrb_value lhs, mrb_value rhs,
+                                                   struct RFloat *slot){ OP_MATH_DIV(mrb, lhs,
+                                                                                     rhs) }
+#undef LS_MATH_FLOAT_VALUE
 
 LIGHTSTORM_INLINE mrb_value ls_load_target_class_value(mrb_state *mrb) {
   struct RClass *targetClass = MRB_PROC_TARGET_CLASS(mrb->c->ci->proc);

@@ -11,6 +11,7 @@
 #include "lightstorm/config/config.h"
 #include "lightstorm/conversion/conversion.h"
 #include "lightstorm/dialect/rite.h"
+#include "lightstorm/optimizations/optimizations.h"
 
 llvm::cl::OptionCategory LightstormCategory("lightstorm");
 
@@ -32,6 +33,9 @@ llvm::cl::opt<std::string> RuntimeLocation("runtime-dir", llvm::cl::Optional,
 
 llvm::cl::opt<bool> Verbose("v", llvm::cl::Optional, llvm::cl::desc("Verbose mode"),
                             llvm::cl::cat(LightstormCategory));
+
+llvm::cl::opt<bool> NoOpt("no-opt", llvm::cl::Optional, llvm::cl::desc("Disable optimizations"),
+                          llvm::cl::cat(LightstormCategory));
 
 int main(int argc, char **argv) {
   llvm::llvm_shutdown_obj shutdownGuard;
@@ -69,12 +73,23 @@ int main(int argc, char **argv) {
   assert(module && "Could not convert Ruby to MLIR");
 
   if (config.verbose) {
+    llvm::errs() << "Rite module\n";
     module->print(llvm::errs());
+  }
+
+  if (!NoOpt.getValue()) {
+    lightstorm::applyOptimizations(config, context, *module);
+
+    if (config.verbose) {
+      llvm::errs() << "Optimized Rite module\n";
+      module->print(llvm::errs());
+    }
   }
 
   lightstorm::convertRiteToEmitC(config, context, *module);
 
   if (config.verbose) {
+    llvm::errs() << "EmitC module\n";
     module->print(llvm::errs());
   }
 

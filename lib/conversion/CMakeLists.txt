@@ -17,5 +17,6 @@ target_link_libraries(lightstorm_conversion
   MLIREmitCDialect
   MLIRFuncTransforms
   MLIRFuncToEmitC
+  MLIRTargetCpp
 )
 target_compile_options(lightstorm_conversion PRIVATE -fno-rtti -fno-exceptions)
