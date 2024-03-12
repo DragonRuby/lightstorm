@@ -296,7 +296,7 @@ private:
       auto functionType = builder.getFunctionType({ mrbState }, { symType });
       auto function =
           builder.create<mlir::emitc::FuncOp>(module->getLoc(), functionName, functionType);
-      function.setSpecifiersAttr(builder.getStrArrayAttr({ "LIGHTSTORM_INLINE", "static" }));
+      function.setSpecifiersAttr(builder.getStrArrayAttr({ "LIGHTSTORM_INLINE" }));
       function.setVisibility(mlir::SymbolTable::Visibility::Private);
       mlir::OpBuilder::InsertionGuard guard(builder);
       builder.setInsertionPointToStart(function.addEntryBlock());
@@ -455,7 +455,7 @@ void lightstorm::convertMLIRToC(const LightstormConfig &config, mlir::MLIRContex
                                 mlir::ModuleOp module, llvm::raw_ostream &out) {
   mlir::OpBuilder b(module.getBodyRegion());
   b.create<mlir::emitc::IncludeOp>(module->getLoc(),
-                                   config.runtime_header_location + "/lightstorm_runtime.h");
+                                   config.runtime_source_location + "/lightstorm_runtime.c");
 
   if (mlir::failed(mlir::emitc::translateToCpp(module, out, true))) {
     llvm::errs() << "Cannot convert MLIR to C\n";

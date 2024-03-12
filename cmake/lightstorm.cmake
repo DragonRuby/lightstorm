@@ -9,6 +9,11 @@ function(add_lightstorm_executable ruby)
   add_executable(${target_name} ${out_c})
   target_compile_options(${target_name} PRIVATE ${LIGHTSTORM_CFLAGS})
   target_link_options(${target_name} PRIVATE ${LIGHTSTORM_CFLAGS})
-  target_link_libraries(${target_name} PRIVATE mruby_static lightstorm_runtime lightstorm_runtime_main)
+  target_link_libraries(${target_name} PRIVATE mruby_static lightstorm_runtime_main)
+  target_include_directories(${target_name} PRIVATE
+    ${CMAKE_SOURCE_DIR}
+    ${CMAKE_SOURCE_DIR}/third_party/mruby/include
+    ${CMAKE_SOURCE_DIR}/third_party/mruby/build/host/include
+  )
   add_dependencies(${target_name} mruby_static)
 endfunction()

@@ -1,5 +1,5 @@
-#include "lightstorm_runtime.h"
 #include <assert.h>
+#include <mruby.h>
 #include <mruby/array.h>
 #include <mruby/class.h>
 #include <mruby/error.h>
@@ -7,9 +7,237 @@
 #include <mruby/numeric.h>
 #include <mruby/presym.h>
 #include <mruby/proc.h>
+#include <mruby/range.h>
 #include <mruby/string.h>
 #include <mruby/throw.h>
+#include <mruby/variable.h>
 #include <stdlib.h>
+
+#define LIGHTSTORM_INLINE __attribute__((always_inline)) static inline
+// EmitC uses `bool` for conditional branch predicates
+typedef int bool;
+
+LIGHTSTORM_INLINE mrb_value ls_load_i(mrb_state *mrb, int64_t i) {
+  return mrb_fixnum_value(i);
+}
+
+LIGHTSTORM_INLINE mrb_value ls_load_f(mrb_state *mrb, mrb_float v) {
+  return mrb_float_value(mrb, v);
+}
+
+LIGHTSTORM_INLINE mrb_value ls_load_nil_value(mrb_state *mrb) {
+  return mrb_nil_value();
+}
+LIGHTSTORM_INLINE mrb_value ls_load_self_value(mrb_state *mrb) {
+  return mrb->c->ci->stack[0];
+}
+LIGHTSTORM_INLINE void ls_store_self_value(mrb_state *mrb, mrb_value self) {
+  mrb->c->ci->stack[0] = self;
+}
+LIGHTSTORM_INLINE mrb_value ls_load_true_value(mrb_state *mrb) {
+  return mrb_true_value();
+}
+LIGHTSTORM_INLINE mrb_value ls_load_false_value(mrb_state *mrb) {
+  return mrb_false_value();
+}
+
+LIGHTSTORM_INLINE mrb_value ls_load_object_class_value(mrb_state *mrb) {
+  return mrb_obj_value(mrb->object_class);
+}
+
+LIGHTSTORM_INLINE mrb_value ls_load_string(mrb_state *mrb, const char *s, mrb_int len) {
+  return mrb_str_new(mrb, s, len);
+}
+
+LIGHTSTORM_INLINE mrb_value ls_strcat(mrb_state *mrb, mrb_value str, mrb_value str2) {
+  mrb_str_concat(mrb, str, str2);
+  return str;
+}
+
+LIGHTSTORM_INLINE mrb_value ls_intern_string(mrb_state *mrb, mrb_value str) {
+  mrb_sym sym = mrb_intern_str(mrb, str);
+  return mrb_symbol_value(sym);
+}
+
+LIGHTSTORM_INLINE int ls_predicate_is_true(mrb_value value) {
+  return mrb_true_p(value);
+}
+LIGHTSTORM_INLINE int ls_predicate_is_false(mrb_value value) {
+  return mrb_false_p(value);
+}
+LIGHTSTORM_INLINE int ls_predicate_is_nil(mrb_value value) {
+  return mrb_nil_p(value);
+}
+
+LIGHTSTORM_INLINE mrb_value ls_load_local_variable(mrb_state *mrb, int64_t idx) {
+  return mrb->c->ci->stack[idx];
+}
+LIGHTSTORM_INLINE mrb_value ls_load_sym(mrb_state *mrb, mrb_sym sym) {
+  return mrb_symbol_value(sym);
+}
+LIGHTSTORM_INLINE mrb_value ls_load_singleton_class(mrb_state *mrb, mrb_value target) {
+  return mrb_singleton_class(mrb, target);
+}
+
+LIGHTSTORM_INLINE mrb_value ls_load_target_class_value(mrb_state *mrb) {
+  struct RClass *targetClass = MRB_PROC_TARGET_CLASS(mrb->c->ci->proc);
+  if (!targetClass) {
+    mrb_value exc = mrb_exc_new_lit(mrb, E_TYPE_ERROR, "no target class or module");
+    mrb_exc_raise(mrb, exc);
+  }
+  return mrb_obj_value(targetClass);
+}
+
+#define LS_INTERN_SYMBOL(value, len)                                                               \
+  static mrb_sym sym = 0;                                                                          \
+  if (sym == 0) {                                                                                  \
+    sym = mrb_intern(v1, value, len);                                                              \
+  }                                                                                                \
+  return sym;
+
+LIGHTSTORM_INLINE mrb_sym ls_get_sym_new(mrb_state *mrb) {
+  mrb_state *v1 = mrb;
+  LS_INTERN_SYMBOL("new", 3);
+}
+
+#ifdef LS_NO_CATCH
+#define LS_TRY
+#define LS_CATCH
+#else
+#define LS_TRY                                                                                     \
+  struct mrb_jmpbuf *prev_jmp = mrb->jmp;                                                          \
+  struct mrb_jmpbuf c_jmp;                                                                         \
+  MRB_TRY(&c_jmp) {                                                                                \
+    mrb->jmp = &c_jmp;
+
+#define LS_CATCH                                                                                   \
+  mrb->jmp = prev_jmp;                                                                             \
+  }                                                                                                \
+  MRB_CATCH(&c_jmp) {                                                                              \
+    mrb_print_error(mrb);                                                                          \
+    abort();                                                                                       \
+  }                                                                                                \
+  MRB_END_EXC(&c_jmp);
+#endif
+
+LIGHTSTORM_INLINE mrb_value ls_send_argv(mrb_state *mrb, mrb_value recv, mrb_sym name, mrb_int argc,
+                                         mrb_value *argv) {
+
+  mrb_value ret = mrb_nil_value();
+  mrb_value old_self = ls_load_self_value(mrb);
+  if (mrb_nil_p(old_self)) {
+    // In certain cases (`new` followed by `initialize`) mruby pushes the stack frame but doesn't
+    // preserve `self`
+    // In this case we propagate self from the parent stack frame
+    // TODO: add caching
+    mrb_sym new_sym = ls_get_sym_new(mrb);
+    if (new_sym == name) {
+      //         parent stack frame
+      old_self = (mrb->c->ci - 1)->stack[0];
+      ls_store_self_value(mrb, old_self);
+    }
+  }
+  LS_TRY;
+  ret = mrb_funcall_argv(mrb, recv, name, argc, argv);
+  LS_CATCH;
+  ls_store_self_value(mrb, old_self);
+  return ret;
+}
+
+LIGHTSTORM_INLINE mrb_value ls_aref(mrb_state *mrb, mrb_value array, mrb_int index) {
+  if (!mrb_array_p(array)) {
+    if (index == 0) {
+      return array;
+    } else {
+      return mrb_nil_value();
+    }
+  }
+  return mrb_ary_ref(mrb, array, index);
+}
+
+LIGHTSTORM_INLINE mrb_value ls_array_push(mrb_state *mrb, mrb_value array, mrb_value v) {
+  mrb_ary_push(mrb, array, v);
+  return array;
+}
+LIGHTSTORM_INLINE mrb_value ls_array_cat(mrb_state *mrb, mrb_value self, mrb_value other) {
+  mrb_value splat = mrb_ary_splat(mrb, other);
+  if (mrb_nil_p(self)) {
+    return splat;
+  }
+  mrb_ary_concat(mrb, self, splat);
+  return self;
+}
+
+LIGHTSTORM_INLINE mrb_value ls_get_const(mrb_state *mrb, mrb_sym sym) {
+  return mrb_vm_const_get(mrb, sym);
+}
+
+LIGHTSTORM_INLINE mrb_value ls_set_const(mrb_state *mrb, mrb_sym sym, mrb_value v) {
+  mrb_vm_const_set(mrb, sym, v);
+  return v;
+}
+
+LIGHTSTORM_INLINE mrb_value ls_get_global_variable(mrb_state *mrb, mrb_sym sym) {
+  return mrb_gv_get(mrb, sym);
+}
+
+LIGHTSTORM_INLINE mrb_value ls_set_global_variable(mrb_state *mrb, mrb_sym sym, mrb_value val) {
+  mrb_gv_set(mrb, sym, val);
+  return val;
+}
+
+LIGHTSTORM_INLINE mrb_value ls_get_instance_variable(mrb_state *mrb, mrb_value obj, mrb_sym sym) {
+  return mrb_iv_get(mrb, obj, sym);
+}
+
+LIGHTSTORM_INLINE mrb_value ls_set_instance_variable(mrb_state *mrb, mrb_value obj, mrb_sym sym,
+                                                     mrb_value v) {
+  mrb_iv_set(mrb, obj, sym, v);
+  return v;
+}
+
+LIGHTSTORM_INLINE mrb_value ls_get_class_variable(mrb_state *mrb, mrb_sym sym) {
+  return mrb_vm_cv_get(mrb, sym);
+}
+
+LIGHTSTORM_INLINE mrb_value ls_set_class_variable(mrb_state *mrb, mrb_sym sym, mrb_value v) {
+  mrb_vm_cv_set(mrb, sym, v);
+  return v;
+}
+
+LIGHTSTORM_INLINE mrb_value ls_get_module_const(mrb_state *mrb, mrb_value recv, mrb_sym sym) {
+  return mrb_const_get(mrb, recv, sym);
+}
+
+LIGHTSTORM_INLINE mrb_value ls_set_module_const(mrb_state *mrb, mrb_value recv, mrb_sym sym,
+                                                mrb_value v) {
+  mrb_const_set(mrb, recv, sym, v);
+  return v;
+}
+
+LIGHTSTORM_INLINE mrb_value ls_range_inc(mrb_state *mrb, mrb_value start, mrb_value end) {
+  return mrb_range_new(mrb, start, end, 0);
+}
+LIGHTSTORM_INLINE mrb_value ls_range_exc(mrb_state *mrb, mrb_value start, mrb_value end) {
+  return mrb_range_new(mrb, start, end, 1);
+}
+
+LIGHTSTORM_INLINE mrb_value ls_alias_method(mrb_state *mrb, mrb_sym a, mrb_sym b) {
+  struct RClass *target = mrb_class_ptr(ls_load_target_class_value(mrb));
+  mrb_alias_method(mrb, target, a, b);
+  return mrb_nil_value();
+}
+
+LIGHTSTORM_INLINE mrb_value ls_undef_method(mrb_state *mrb, mrb_sym sym) {
+  struct RClass *target = mrb_class_ptr(ls_load_target_class_value(mrb));
+  mrb_undef_method_id(mrb, target, sym);
+  return mrb_nil_value();
+}
+
+#define LS_ALLOC_STACK_VALUE(mrb)                                                                  \
+  (struct RFloat) {                                                                                \
+    mrb->float_class, NULL, MRB_TT_FLOAT                                                           \
+  }
 
 void mrb_exc_set(mrb_state *mrb, mrb_value exc);
 
@@ -17,7 +245,7 @@ void mrb_exc_set(mrb_state *mrb, mrb_value exc);
 
 #define TYPES2(a, b) ((((uint16_t)(a)) << 8) | (((uint16_t)(b)) & 0xff))
 
-#define FS_COMPARE(mrb, lhs, rhs, op, sym)                                                         \
+#define LS_COMPARE(mrb, lhs, rhs, op, sym)                                                         \
   int result;                                                                                      \
   switch (TYPES2(mrb_type(lhs), mrb_type(rhs))) {                                                  \
   case TYPES2(MRB_TT_FIXNUM, MRB_TT_FIXNUM):                                                       \
@@ -44,30 +272,30 @@ void mrb_exc_set(mrb_state *mrb, mrb_value exc);
   return mrb_false_value();
 
 LIGHTSTORM_INLINE mrb_value ls_compare_le(mrb_state *mrb, mrb_value lhs, mrb_value rhs) {
-  FS_COMPARE(mrb, lhs, rhs, <=, le);
+  LS_COMPARE(mrb, lhs, rhs, <=, le);
 }
 LIGHTSTORM_INLINE mrb_value ls_compare_lt(mrb_state *mrb, mrb_value lhs, mrb_value rhs) {
-  FS_COMPARE(mrb, lhs, rhs, <, lt);
+  LS_COMPARE(mrb, lhs, rhs, <, lt);
 }
 LIGHTSTORM_INLINE mrb_value ls_compare_ge(mrb_state *mrb, mrb_value lhs, mrb_value rhs) {
-  FS_COMPARE(mrb, lhs, rhs, >=, ge);
+  LS_COMPARE(mrb, lhs, rhs, >=, ge);
 }
 LIGHTSTORM_INLINE mrb_value ls_compare_gt(mrb_state *mrb, mrb_value lhs, mrb_value rhs) {
-  FS_COMPARE(mrb, lhs, rhs, >, gt);
+  LS_COMPARE(mrb, lhs, rhs, >, gt);
 }
 LIGHTSTORM_INLINE mrb_value ls_compare_eq(mrb_state *mrb, mrb_value lhs, mrb_value rhs) {
   if (mrb_obj_eq(mrb, lhs, rhs)) {
     return mrb_true_value();
   }
-  FS_COMPARE(mrb, lhs, rhs, ==, eq);
+  LS_COMPARE(mrb, lhs, rhs, ==, eq);
 }
 
-#undef FS_COMPARE
+#undef LS_COMPARE
 
 #pragma mark - Arithmetic
 
-LIGHTSTORM_INLINE static mrb_value ls_float_value_inplace(mrb_state *mrb, mrb_float f,
-                                                          struct RFloat *slot) {
+LIGHTSTORM_INLINE mrb_value ls_float_value_inplace(mrb_state *mrb, mrb_float f,
+                                                   struct RFloat *slot) {
   union mrb_value_ v;
   v.fp = slot;
   v.fp->f = f;
@@ -197,15 +425,6 @@ LIGHTSTORM_INLINE mrb_value ls_arith_div_no_escape(mrb_state *mrb, mrb_value lhs
                                                                                      rhs) }
 #undef LS_MATH_FLOAT_VALUE
 
-LIGHTSTORM_INLINE mrb_value ls_load_target_class_value(mrb_state *mrb) {
-  struct RClass *targetClass = MRB_PROC_TARGET_CLASS(mrb->c->ci->proc);
-  if (!targetClass) {
-    mrb_value exc = mrb_exc_new_lit(mrb, E_TYPE_ERROR, "no target class or module");
-    mrb_exc_raise(mrb, exc);
-  }
-  return mrb_obj_value(targetClass);
-}
-
 LIGHTSTORM_INLINE mrb_value ls_create_method(mrb_state *mrb, mrb_func_t func) {
   struct RProc *proc = mrb_proc_new_cfunc(mrb, func);
   proc->flags |= MRB_PROC_SCOPE;
@@ -304,55 +523,6 @@ LIGHTSTORM_INLINE mrb_value ls_exec(mrb_state *mrb, mrb_value receiver, mrb_func
   mrb_value ret = func(mrb, receiver);
   ls_store_self_value(mrb, old_self);
   mrb_vm_ci_proc_set(mrb->c->ci, upperProc);
-  return ret;
-}
-
-LIGHTSTORM_INLINE static mrb_sym ls_get_sym_new(mrb_state *mrb) {
-  mrb_state *v1 = mrb;
-  LS_INTERN_SYMBOL("new", 3);
-}
-
-#ifdef LS_NO_CATCH
-#define LS_TRY
-#define LS_CATCH
-#else
-#define LS_TRY                                                                                     \
-  struct mrb_jmpbuf *prev_jmp = mrb->jmp;                                                          \
-  struct mrb_jmpbuf c_jmp;                                                                         \
-  MRB_TRY(&c_jmp) {                                                                                \
-    mrb->jmp = &c_jmp;
-
-#define LS_CATCH                                                                                   \
-  mrb->jmp = prev_jmp;                                                                             \
-  }                                                                                                \
-  MRB_CATCH(&c_jmp) {                                                                              \
-    mrb_print_error(mrb);                                                                          \
-    abort();                                                                                       \
-  }                                                                                                \
-  MRB_END_EXC(&c_jmp);
-#endif
-
-LIGHTSTORM_INLINE mrb_value ls_send_argv(mrb_state *mrb, mrb_value recv, mrb_sym name, mrb_int argc,
-                                         mrb_value *argv) {
-
-  mrb_value ret = mrb_nil_value();
-  mrb_value old_self = ls_load_self_value(mrb);
-  if (mrb_nil_p(old_self)) {
-    // In certain cases (`new` followed by `initialize`) mruby pushes the stack frame but doesn't
-    // preserve `self`
-    // In this case we propagate self from the parent stack frame
-    // TODO: add caching
-    mrb_sym new_sym = ls_get_sym_new(mrb);
-    if (new_sym == name) {
-      //         parent stack frame
-      old_self = (mrb->c->ci - 1)->stack[0];
-      ls_store_self_value(mrb, old_self);
-    }
-  }
-  LS_TRY;
-  ret = mrb_funcall_argv(mrb, recv, name, argc, argv);
-  LS_CATCH;
-  ls_store_self_value(mrb, old_self);
   return ret;
 }
 
