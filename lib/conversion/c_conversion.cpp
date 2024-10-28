@@ -1,5 +1,6 @@
 #include "lightstorm/conversion/conversion.h"
 #include "lightstorm/dialect/rite.h"
+#include <mlir/Conversion/ArithToEmitC/ArithToEmitC.h>
 #include <mlir/Conversion/FuncToEmitC/FuncToEmitC.h>
 #include <mlir/Dialect/Arith/IR/Arith.h>
 #include <mlir/Dialect/ControlFlow/IR/ControlFlow.h>
@@ -249,14 +250,17 @@ struct StackAllocationOpConversion : public LightstormConversionPattern<rite::St
   explicit StackAllocationOpConversion(LightstormConversionContext &conversionContext)
       : LightstormConversionPattern(conversionContext) {}
 
-  mlir::LogicalResult matchAndRewrite(rite::StackAllocationOp op, llvm::ArrayRef<mlir::Value> operands,
+  mlir::LogicalResult matchAndRewrite(rite::StackAllocationOp op,
+                                      llvm::ArrayRef<mlir::Value> operands,
                                       llvm::ArrayRef<mlir::Type> operandTypes,
                                       mlir::Type resultType,
                                       mlir::ConversionPatternRewriter &rewriter) const final {
     assert(resultType.isa<mlir::emitc::PointerType>());
     auto stackValueType = resultType.cast<mlir::emitc::PointerType>().getPointee();
-    auto stackValue = opaqueCallOp(rewriter, op->getLoc(), stackValueType, "LS_ALLOC_STACK_VALUE", operands);
-    auto addrOf = rewriter.create<mlir::emitc::ApplyOp>(op->getLoc(), resultType, rewriter.getStringAttr("&"), stackValue.getResult(0));
+    auto stackValue =
+        opaqueCallOp(rewriter, op->getLoc(), stackValueType, "LS_ALLOC_STACK_VALUE", operands);
+    auto addrOf = rewriter.create<mlir::emitc::ApplyOp>(
+        op->getLoc(), resultType, rewriter.getStringAttr("&"), stackValue.getResult(0));
     rewriter.replaceOp(op, addrOf->getResults());
     return mlir::success();
   }
@@ -325,7 +329,6 @@ void lightstorm::convertRiteToEmitC(const LightstormConfig &config, mlir::MLIRCo
 
   mlir::ConversionTarget target(context);
   target.addLegalOp<mlir::ModuleOp>();
-  target.addLegalOp<mlir::arith::ConstantOp>();
   target.addLegalDialect<mlir::func::FuncDialect>();
   target.addLegalDialect<mlir::BuiltinDialect>();
   target.addLegalDialect<mlir::emitc::EmitCDialect>();
@@ -382,6 +385,7 @@ void lightstorm::convertRiteToEmitC(const LightstormConfig &config, mlir::MLIRCo
   mlir::populateAnyFunctionOpInterfaceTypeConversionPattern(patterns, typeConverter);
   mlir::populateBranchOpInterfaceTypeConversionPattern(patterns, typeConverter);
   mlir::populateFuncToEmitCPatterns(patterns);
+  mlir::populateArithToEmitCPatterns(typeConverter, patterns);
   patterns.add<
       ///
       lightstorm_conversion::InternSymOpConversion,

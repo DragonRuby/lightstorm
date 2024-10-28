@@ -39,7 +39,7 @@ void RiteDialect::initialize() {
 // Mem2Reg support
 //
 
-Value rite::VirtualRegisterOp::getDefaultValue(const MemorySlot &slot, RewriterBase &rewriter) {
+Value rite::VirtualRegisterOp::getDefaultValue(const MemorySlot &slot, OpBuilder &rewriter) {
   return {};
 }
 
@@ -48,16 +48,19 @@ llvm::SmallVector<MemorySlot> rite::VirtualRegisterOp::getPromotableSlots() {
 }
 
 void rite::VirtualRegisterOp::handleBlockArgument(const MemorySlot &slot, BlockArgument argument,
-                                                  RewriterBase &rewriter) {}
+                                                  OpBuilder &rewriter) {}
 
-void rite::VirtualRegisterOp::handlePromotionComplete(const MemorySlot &slot, Value defaultValue,
-                                                      RewriterBase &rewriter) {
-  rewriter.eraseOp(*this);
+std::optional<PromotableAllocationOpInterface>
+rite::VirtualRegisterOp::handlePromotionComplete(const MemorySlot &slot, Value defaultValue,
+                                                 OpBuilder &rewriter) {
+  this->erase();
+  return std::nullopt;
 }
 
 bool rite::LoadOp::canUsesBeRemoved(const MemorySlot &slot,
                                     const SmallPtrSetImpl<OpOperand *> &blockingUses,
-                                    SmallVectorImpl<OpOperand *> &newBlockingUses) {
+                                    SmallVectorImpl<OpOperand *> &newBlockingUses,
+                                    const DataLayout &dataLayout) {
   if (blockingUses.size() != 1)
     return false;
   Value blockingUse = (*blockingUses.begin())->get();
@@ -66,8 +69,9 @@ bool rite::LoadOp::canUsesBeRemoved(const MemorySlot &slot,
 
 DeletionKind rite::LoadOp::removeBlockingUses(const MemorySlot &slot,
                                               const SmallPtrSetImpl<OpOperand *> &blockingUses,
-                                              RewriterBase &rewriter, Value reachingDefinition) {
-  rewriter.replaceAllUsesWith(getResult(), reachingDefinition);
+                                              OpBuilder &rewriter, Value reachingDefinition,
+                                              const DataLayout &dataLayout) {
+  getResult().replaceAllUsesWith(reachingDefinition);
   return DeletionKind::Delete;
 }
 
@@ -79,13 +83,15 @@ bool rite::LoadOp::storesTo(const MemorySlot &slot) {
   return false;
 }
 
-Value rite::LoadOp::getStored(const MemorySlot &slot, RewriterBase &rewriter) {
+Value rite::LoadOp::getStored(const MemorySlot &slot, OpBuilder &rewriter, Value reachingDef,
+                              const DataLayout &dataLayout) {
   llvm_unreachable("getStored should not be called on LoadOp");
 }
 
 bool rite::StoreOp::canUsesBeRemoved(const MemorySlot &slot,
                                      const SmallPtrSetImpl<OpOperand *> &blockingUses,
-                                     SmallVectorImpl<OpOperand *> &newBlockingUses) {
+                                     SmallVectorImpl<OpOperand *> &newBlockingUses,
+                                     const DataLayout &dataLayout) {
   if (blockingUses.size() != 1)
     return false;
 
@@ -96,7 +102,8 @@ bool rite::StoreOp::canUsesBeRemoved(const MemorySlot &slot,
 
 DeletionKind rite::StoreOp::removeBlockingUses(const MemorySlot &slot,
                                                const SmallPtrSetImpl<OpOperand *> &blockingUses,
-                                               RewriterBase &rewriter, Value reachingDefinition) {
+                                               OpBuilder &rewriter, Value reachingDefinition,
+                                               const DataLayout &dataLayout) {
   return DeletionKind::Delete;
 }
 
@@ -108,6 +115,7 @@ bool rite::StoreOp::storesTo(const MemorySlot &slot) {
   return getSlot() == slot.ptr;
 }
 
-Value rite::StoreOp::getStored(const MemorySlot &slot, RewriterBase &rewriter) {
+Value rite::StoreOp::getStored(const MemorySlot &slot, OpBuilder &rewriter, Value reachingDef,
+                               const ::mlir::DataLayout &dataLayout) {
   return getValue();
 }

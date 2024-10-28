@@ -19,9 +19,10 @@ include(AddLLVM)
 include(TableGen)
 include(AddMLIR)
 
-set (LIGHTSTORM_CFLAGS -g)
-if (LIGHTSTORM_LTO)
-  set (LIGHTSTORM_CFLAGS -g -flto -O3)
+set(LIGHTSTORM_CFLAGS -g)
+
+if(LIGHTSTORM_LTO)
+  set(LIGHTSTORM_CFLAGS -g -flto -O3)
 endif()
 
 add_subdirectory(lib)

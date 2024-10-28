@@ -13,7 +13,7 @@ Get the sources
 
 ```bash
 git clone git@github.com:DragonRuby/lightstorm.git --recursive
-git clone git@github.com:llvm/llvm-project.git; cd llvm-project; git checkout 256200732111afd03bb7437564f3a3d77c0ec3f5
+git clone git@github.com:llvm/llvm-project.git; cd llvm-project; git checkout d401987fe349a87c53fe25829215b080b70c0c1a
 ```
 
 Create toolchain dir
