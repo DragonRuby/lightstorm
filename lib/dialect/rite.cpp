@@ -40,7 +40,8 @@ void RiteDialect::initialize() {
 //
 
 Value rite::VirtualRegisterOp::getDefaultValue(const MemorySlot &slot, OpBuilder &rewriter) {
-  return {};
+  return rewriter.create<UndefValueOp>(rewriter.getUnknownLoc(),
+                                       rite::mrb_valueType::get(getContext()));
 }
 
 llvm::SmallVector<MemorySlot> rite::VirtualRegisterOp::getPromotableSlots() {
@@ -53,6 +54,8 @@ void rite::VirtualRegisterOp::handleBlockArgument(const MemorySlot &slot, BlockA
 std::optional<PromotableAllocationOpInterface>
 rite::VirtualRegisterOp::handlePromotionComplete(const MemorySlot &slot, Value defaultValue,
                                                  OpBuilder &rewriter) {
+  if (defaultValue && defaultValue.use_empty())
+    defaultValue.getDefiningOp()->erase();
   this->erase();
   return std::nullopt;
 }
