@@ -38,7 +38,7 @@ jobs:
         -DCMAKE_C_COMPILER=clang
         -DCMAKE_CXX_COMPILER=clang++
         -DCMAKE_PREFIX_PATH=/opt/homebrew/opt/llvm@19/
-        -DCMAKE_BUILD_TYPE=Debug
+        -DCMAKE_BUILD_TYPE=Release
         -S ${{ github.workspace }}
 
     - name: Build

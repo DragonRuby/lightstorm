@@ -299,6 +299,14 @@ def ReturnOp : Rite_Op<"OP_RETURN", [Terminator]> {
 // SSA/Load/Store
 //
 
+def UndefValueOp : Rite_Op<"undef"> {
+  let summary = "Undef value for mem2reg defaults";
+  let results = (outs ValueType);
+  let assemblyFormat = [{
+    `(``)` attr-dict `->` type(results)
+  }];
+}
+
 def VirtualRegisterOp : Rite_Op<"vreg", [DeclareOpInterfaceMethods<PromotableAllocationOpInterface>]> {
   let summary = "Mimics alloca behavior. Used for SSA/Mem2Reg.";
   let arguments = (ins IndexAttr:$regnum);
