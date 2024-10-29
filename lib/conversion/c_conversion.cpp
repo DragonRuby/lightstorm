@@ -143,8 +143,11 @@ struct LoadStringOpConversion : public LightstormConversionPattern<rite::LoadStr
     auto str = '"' + op.getStr().str() + '"';
     auto strAttr = mlir::emitc::OpaqueAttr::get(getContext(), str);
     auto strVar = rewriter.create<mlir::emitc::ConstantOp>(op->getLoc(), charPtrType, strAttr);
-    mlir::ValueRange newOperands{ operands.front(), strVar, operands.back() };
-    auto call = opaqueCallOp(rewriter, op->getLoc(), resultType, "ls_load_string", newOperands);
+    auto call = opaqueCallOp(rewriter,
+                             op->getLoc(),
+                             resultType,
+                             "ls_load_string",
+                             mlir::ValueRange{ operands.front(), strVar, operands.back() });
     rewriter.replaceOp(op, call.getResult(0));
     return mlir::success();
   }
