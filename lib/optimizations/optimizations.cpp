@@ -47,9 +47,7 @@ public:
     for (auto arith : function.getOps<rite::ArithOp>()) {
       // If all the uses of the ArithOp are another ArithOp, then this op can have an opportunity to
       // use stack-allocated slot instead of heap allocation
-      auto is_arith = [](mlir::Operation *user) {
-        return llvm::isa<rite::ArithOp>(user);
-      };
+      auto is_arith = [](mlir::Operation *user) { return llvm::isa<rite::ArithOp>(user); };
       if (std::all_of(arith->user_begin(), arith->user_end(), is_arith)) {
         worklist.push_back(arith);
       }
@@ -62,7 +60,13 @@ public:
       builder.setInsertionPointToStart(&entry);
       auto slot = builder.create<rite::StackAllocationOp>(arith.getLoc(), valueType, mrb);
       builder.setInsertionPointAfter(arith);
-      auto no_escape = builder.create<rite::ArithNoEscapeOp>(arith->getLoc(), arith.getType(), arith.getMrb(), arith.getLhs(), arith.getRhs(), slot, arith.getKindAttr());
+      auto no_escape = builder.create<rite::ArithNoEscapeOp>(arith->getLoc(),
+                                                             arith.getType(),
+                                                             arith.getMrb(),
+                                                             arith.getLhs(),
+                                                             arith.getRhs(),
+                                                             slot,
+                                                             arith.getKindAttr());
       arith->replaceAllUsesWith(no_escape);
       arith->erase();
     }

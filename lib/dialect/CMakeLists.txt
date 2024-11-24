@@ -1,16 +1,15 @@
 add_library(rite_dialect STATIC rite.cpp)
 target_link_libraries(rite_dialect LLVMSupport MLIRDialect)
-target_include_directories(rite_dialect
-  PUBLIC
-  ${CMAKE_CURRENT_BINARY_DIR}
-  ${CMAKE_SOURCE_DIR}/include
-)
-target_compile_options(rite_dialect PUBLIC -fno-rtti -fno-exceptions -fvisibility=hidden)
+target_include_directories(rite_dialect PUBLIC ${CMAKE_CURRENT_BINARY_DIR}
+                                               ${CMAKE_SOURCE_DIR}/include)
+target_compile_options(rite_dialect PUBLIC -fno-rtti -fno-exceptions
+                                           -fvisibility=hidden)
 # Needed by mlir-tablegen
 include_directories(SYSTEM ${MLIR_INCLUDE_DIRS})
 include_directories(SYSTEM ${LLVM_INCLUDE_DIRS})
 
-set(LLVM_TARGET_DEFINITIONS ${CMAKE_SOURCE_DIR}/include/lightstorm/dialect/rite.td)
+set(LLVM_TARGET_DEFINITIONS
+    ${CMAKE_SOURCE_DIR}/include/lightstorm/dialect/rite.td)
 mlir_tablegen(RiteDialect.h.inc -gen-dialect-decls)
 mlir_tablegen(RiteDialect.cpp.inc -gen-dialect-defs)
 mlir_tablegen(RiteOps.h.inc -gen-op-decls)
