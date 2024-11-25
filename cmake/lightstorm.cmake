@@ -4,7 +4,7 @@ function(add_lightstorm_executable ruby)
   set(target_name ${ruby}.exe)
   add_custom_command(
     OUTPUT ${out_c}
-    COMMAND $<TARGET_FILE:lightstorm> ${in_ruby} -o ${out_c}
+    COMMAND $<TARGET_FILE:lightstorm> --no-opt ${in_ruby} -o ${out_c}
     DEPENDS ${in_ruby} lightstorm)
   add_executable(${target_name} ${out_c})
   target_compile_options(${target_name} PRIVATE ${LIGHTSTORM_CFLAGS})
