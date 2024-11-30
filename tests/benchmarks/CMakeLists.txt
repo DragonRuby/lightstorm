@@ -13,7 +13,7 @@ function(add_bench_executable ruby)
     PRIVATE ${CMAKE_SOURCE_DIR}/third_party/mruby/include
             ${CMAKE_SOURCE_DIR}/third_party/mruby/build/host/include)
   target_compile_options(${target_name} PRIVATE -g)
-  target_link_libraries(${target_name} PRIVATE mruby_static)
+  target_link_libraries(${target_name} PRIVATE mruby_static m)
   add_dependencies(${target_name} mruby_static)
 endfunction()
 

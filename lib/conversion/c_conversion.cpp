@@ -1,5 +1,6 @@
 #include "lightstorm/conversion/conversion.h"
 #include "lightstorm/dialect/rite.h"
+#include <ctype.h>
 #include <mlir/Conversion/ArithToEmitC/ArithToEmitC.h>
 #include <mlir/Conversion/FuncToEmitC/FuncToEmitC.h>
 #include <mlir/Dialect/Arith/IR/Arith.h>
@@ -55,7 +56,7 @@ static std::string cCompatibleSymName(const std::string &sym) {
   std::string s;
   std::stringstream ss(s);
   for (auto c : sym) {
-    if (isalpha(c) || isnumber(c)) {
+    if (isalpha(c) || isdigit(c)) {
       ss << c;
       continue;
     }

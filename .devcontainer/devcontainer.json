@@ -1,0 +1,7 @@
+{
+  "name": "Lightstorm",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "postCreateCommand": "sh .devcontainer/post_create.sh"
+}

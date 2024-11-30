@@ -1,0 +1,22 @@
+name: Linux CI
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: devcontainers/ci@v0.3
+        with:
+          imageName: ghcr.io/dragonruby/internal-lightstorm-ci
+          runCmd: |
+            cmake --preset lightstorm
+            cmake --build ./build.debug.dir/build -t run-integration-tests
