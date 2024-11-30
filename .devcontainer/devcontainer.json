@@ -1,0 +1,15 @@
+{
+  "name": "Lightstorm",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "features": {
+    // Switch to the "official" version as soon as
+    // https://github.com/devcontainers-community/features-cmake/pull/2
+    // merged
+    "ghcr.io/alexdenisov/features/feature-cmake": {
+      "version": "3.29.3"
+    }
+  },
+  "postCreateCommand": "sh .devcontainer/post_create.sh"
+}

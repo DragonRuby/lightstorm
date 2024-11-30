@@ -1,0 +1,19 @@
+{
+  "version": 8,
+  "configurePresets": [
+    {
+      "name": "lightstorm",
+      "displayName": "lightstorm",
+      "description": "Sets Ninja generator, build and install directory",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build.debug.dir/build",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_C_COMPILER": "clang-19",
+        "CMAKE_CXX_COMPILER": "clang++-19",
+        "CMAKE_PREFIX_PATH": "/usr/lib/llvm-19/lib/cmake",
+        "CMAKE_INSTALL_PREFIX": "${sourceDir}/build.debug.dir/install"
+      }
+    }
+  ]
+}

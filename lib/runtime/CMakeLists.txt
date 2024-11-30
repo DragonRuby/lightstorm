@@ -6,4 +6,5 @@ target_include_directories(
          ${CMAKE_SOURCE_DIR}/third_party/mruby/build/host/include)
 target_compile_options(lightstorm_runtime_main PRIVATE ${LIGHTSTORM_CFLAGS})
 target_link_options(lightstorm_runtime_main PRIVATE ${LIGHTSTORM_CFLAGS})
+target_link_libraries(lightstorm_runtime_main PUBLIC m)
 add_dependencies(lightstorm_runtime_main mruby_static)

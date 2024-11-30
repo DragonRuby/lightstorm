@@ -5,12 +5,8 @@ on:
   pull_request:
     branches: ["main"]
 jobs:
-  build:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [macos-latest]
+  build-and-test:
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
         with:
