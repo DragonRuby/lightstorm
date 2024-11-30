@@ -23,6 +23,11 @@ struct LightstormConversionContext {
   mlir::TypeConverter &converter;
 };
 
+struct Stuff {
+  mlir::MLIRContext &context;
+  mlir::TypeConverter &converter;
+};
+
 template <typename Op> struct LightstormConversionPattern : public mlir::ConversionPattern {
   LightstormConversionPattern(LightstormConversionContext &loweringContext)
       : conversionContext(loweringContext),
