@@ -2,18 +2,115 @@
   "version": 8,
   "configurePresets": [
     {
-      "name": "lightstorm",
-      "displayName": "lightstorm",
-      "description": "Sets Ninja generator, build and install directory",
+      "name": "lightstorm-defaults",
       "generator": "Ninja",
-      "binaryDir": "${sourceDir}/build.debug.dir/build",
+      "binaryDir": "${sourceDir}/build.dir",
+      "installDir": "${sourceDir}/install.dir",
       "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+    {
+      "name": "lightstorm-ubuntu",
+      "inherits": "lightstorm-defaults",
+      "cacheVariables": {
         "CMAKE_C_COMPILER": "clang-19",
         "CMAKE_CXX_COMPILER": "clang++-19",
-        "CMAKE_PREFIX_PATH": "/usr/lib/llvm-19/lib/cmake",
-        "CMAKE_INSTALL_PREFIX": "${sourceDir}/build.debug.dir/install"
+        "CMAKE_PREFIX_PATH": "/usr/lib/llvm-19/lib/cmake"
       }
+    },
+    {
+      "name": "lightstorm-macos",
+      "inherits": "lightstorm-defaults",
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "clang",
+        "CMAKE_CXX_COMPILER": "clang++",
+        "CMAKE_PREFIX_PATH": "/opt/homebrew/opt/llvm@19"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "lightstorm-ubuntu",
+      "configurePreset": "lightstorm-ubuntu"
+    },
+    {
+      "name": "lightstorm-ubuntu-tests",
+      "inherits": "lightstorm-ubuntu",
+      "targets": "run-integration-tests"
+    },
+    {
+      "name": "lightstorm-ubuntu-install",
+      "inherits": "lightstorm-ubuntu",
+      "targets": "install"
+    },
+    {
+      "name": "lightstorm-macos",
+      "configurePreset": "lightstorm-macos"
+    },
+    {
+      "name": "lightstorm-macos-tests",
+      "inherits": "lightstorm-macos",
+      "targets": "run-integration-tests"
+    },
+    {
+      "name": "lightstorm-macos-install",
+      "inherits": "lightstorm-macos",
+      "targets": "install"
+    }
+  ],
+  "workflowPresets": [
+    {
+      "name": "lightstorm-ubuntu-ci",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "lightstorm-ubuntu"
+        },
+        {
+          "type": "build",
+          "name": "lightstorm-ubuntu-tests"
+        }
+      ]
+    },
+    {
+      "name": "lightstorm-ubuntu-install",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "lightstorm-ubuntu"
+        },
+        {
+          "type": "build",
+          "name": "lightstorm-ubuntu-install"
+        }
+      ]
+    },
+    {
+      "name": "lightstorm-macos-ci",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "lightstorm-macos"
+        },
+        {
+          "type": "build",
+          "name": "lightstorm-macos-tests"
+        }
+      ]
+    },
+    {
+      "name": "lightstorm-macos-install",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "lightstorm-macos"
+        },
+        {
+          "type": "build",
+          "name": "lightstorm-macos-install"
+        }
+      ]
     }
   ]
 }
