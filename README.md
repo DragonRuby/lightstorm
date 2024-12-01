@@ -2,7 +2,7 @@
 
 Simplified version of Firestorm targeting C instead of machine code directly.
 
-# Local Build Setup
+## Local Build Setup
 
 ### Install Dependencies
 
@@ -37,7 +37,7 @@ cmake --workflow --preset lightstorm-ubuntu-install
 cmake --workflow --preset lightstorm-macos-install
 ```
 
-# Build "Hello World"
+## Build "Hello World"
 
 ```bash
 > echo 'puts "Hello, Lightstorm"' > hello.rb
@@ -50,7 +50,7 @@ cmake --workflow --preset lightstorm-macos-install
 Hello, Lightstorm
 ```
 
-# Build and run tests
+## Build and run tests
 
 Build a test (`tests/integration/loads.rb`):
 
