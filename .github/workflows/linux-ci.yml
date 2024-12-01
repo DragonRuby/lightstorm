@@ -18,5 +18,4 @@ jobs:
         with:
           imageName: ghcr.io/dragonruby/internal-lightstorm-ci
           runCmd: |
-            cmake --preset lightstorm-ubuntu
-            cmake --build --preset lightstorm-ubuntu-tests
+            cmake --workflow --preset lightstorm-ubuntu-ci
