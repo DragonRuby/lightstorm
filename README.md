@@ -4,39 +4,58 @@ Simplified version of Firestorm targeting C instead of machine code directly.
 
 # Local Build Setup
 
-Brew:
+### Install Dependencies
+
+You need `ninja`, `cmake` (at least 3.28) and `llvm` 19.
+
+On macOS:
 
 ```bash
-brew install ninja cmake ccache hyperfine llvm@19
+brew install ninja cmake hyperfine llvm@19
 ```
 
-Get the sources
+On Ubuntu 24.04:
+
+```bash
+sudo apt-get install ninja-build cmake
+```
+
+To install LLVM 19 follow the instructions [here](https://apt.llvm.org).
+
+### Checkout
 
 ```bash
 git clone git@github.com:DragonRuby/lightstorm.git --recursive
 ```
 
-Create toolchain dir
+### Build & install
 
 ```bash
-sudo mkdir /opt/lightstorm.toolchain.dir
-sudo chown `whoami` /opt/lightstorm.toolchain.dir
+# On Ubuntu
+cmake --workflow --preset lightstorm-ubuntu-install
+# On macOS
+cmake --workflow --preset lightstorm-macos-install
 ```
 
-Build lightstorm
+# Build "Hello World"
 
 ```bash
-mkdir lightstorm-build; cd lightstorm-build
-cmake -G Ninja -DCMAKE_PREFIX_PATH=/opt/homebrew/opt/llvm@19/ \
-  -DCMAKE_INSTALL_PREFIX=/opt/lightstorm.toolchain.dir/lightstorm \
-  ../lightstorm
-
-ninja
+> echo 'puts "Hello, Lightstorm"' > hello.rb
+> ./install.dir/bin/lightstorm hello.rb -o hello.rb.c
+> clang hello.rb.c -o hello_lightstorm \
+  -L./install.dir/lib/ \
+  -isystem./third_party/mruby/include -isystem./third_party/mruby/build/host/include/ \
+   -llightstorm_runtime_main -llightstorm_mruby -lm
+> ./hello_lightstorm
+Hello, Lightstorm
 ```
+
+# Build and run tests
 
 Build a test (`tests/integration/loads.rb`):
 
 ```bash
+> cd build.dir
 > ninja loads.rb.exe
 > ../lightstorm/tests/integration/Output/loads.rb.tmp.exe
 1
