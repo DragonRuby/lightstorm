@@ -1,3 +1,4 @@
 Output
 build*dir
+install*dir
 *.lit_test_times.txt

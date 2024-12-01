@@ -20,11 +20,23 @@ ExternalProject_Add(
 add_executable(mruby_binary IMPORTED GLOBAL)
 set_property(TARGET mruby_binary PROPERTY IMPORTED_LOCATION ${MRUBY_BINARY})
 add_dependencies(mruby_binary mruby)
+install(
+  FILES $<TARGET_FILE:mruby_binary>
+  DESTINATION ${CMAKE_INSTALL_BINDIR}
+  RENAME lightstorm-mruby)
 
 add_executable(mrbc_binary IMPORTED GLOBAL)
 set_property(TARGET mrbc_binary PROPERTY IMPORTED_LOCATION ${MRBC_BINARY})
 add_dependencies(mrbc_binary mruby)
+install(
+  FILES $<TARGET_FILE:mrbc_binary>
+  DESTINATION ${CMAKE_INSTALL_BINDIR}
+  RENAME lightstorm-mrbc)
 
 add_library(mruby_static STATIC IMPORTED GLOBAL)
 set_property(TARGET mruby_static PROPERTY IMPORTED_LOCATION ${MRUBY_STATIC})
 add_dependencies(mruby_static mruby)
+install(
+  FILES $<TARGET_FILE:mruby_static>
+  DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  RENAME liblightstorm_mruby.a)
