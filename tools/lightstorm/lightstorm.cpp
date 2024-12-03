@@ -13,6 +13,7 @@
 #include "lightstorm/conversion/conversion.h"
 #include "lightstorm/dialect/rite.h"
 #include "lightstorm/optimizations/optimizations.h"
+#include "lightstorm/version.h"
 
 llvm::cl::OptionCategory LightstormCategory("lightstorm");
 
@@ -41,6 +42,7 @@ llvm::cl::opt<bool> NoOpt("no-opt", llvm::cl::Optional, llvm::cl::desc("Disable 
 int main(int argc, char **argv) {
   llvm::llvm_shutdown_obj shutdownGuard;
 
+  llvm::cl::SetVersionPrinter(lightstorm::print_version_information);
   llvm::cl::HideUnrelatedOptions(LightstormCategory);
   llvm::cl::ParseCommandLineOptions(argc, argv);
 
