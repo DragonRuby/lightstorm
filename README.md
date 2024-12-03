@@ -1,8 +1,10 @@
 # Lightstorm (working name)
 
-Simplified version of Firestorm targeting C instead of machine code directly.
+Simplified version of [Firestorm](https://www.youtube.com/watch?v=NfMX-dFMSr0) targeting C instead of machine code directly.
 
-## Local Build Setup
+## Development Setup
+
+You can either use a codespace or a [devcontainer](https://code.visualstudio.com/docs/devcontainers/containers). For a local setup, follow the steps below.
 
 ### Install Dependencies
 
@@ -14,7 +16,7 @@ On macOS:
 brew install ninja cmake hyperfine llvm@19
 ```
 
-On Ubuntu 24.04:
+On Ubuntu:
 
 ```bash
 sudo apt-get install ninja-build cmake
@@ -28,7 +30,9 @@ To install LLVM 19 follow the instructions [here](https://apt.llvm.org).
 git clone git@github.com:DragonRuby/lightstorm.git --recursive
 ```
 
-### Build & install
+## Hello World
+
+### Build lightstorm binaries/runtime
 
 ```bash
 # On Ubuntu
@@ -37,7 +41,7 @@ cmake --workflow --preset lightstorm-ubuntu-install
 cmake --workflow --preset lightstorm-macos-install
 ```
 
-## Build "Hello World"
+### Compile and run "Hello World" program
 
 ```bash
 > echo 'puts "Hello, Lightstorm"' > hello.rb
@@ -57,7 +61,7 @@ Build a test (`tests/integration/loads.rb`):
 ```bash
 > cd build.dir
 > ninja loads.rb.exe
-> ../lightstorm/tests/integration/Output/loads.rb.tmp.exe
+> ../tests/integration/Output/loads.rb.tmp.exe
 1
 -1
 42
