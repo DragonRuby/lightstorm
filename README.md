@@ -97,4 +97,4 @@ ninja run-benchmarks
 
 Lightstorm is released under MIT license.
 
-Lightstorm is using LLVM, which uses Apache 2 license with [LLVM exceptions](https://github.com/llvm/llvm-project/blob/2d57333da432921762323718351a21532867588c/LICENSE.TXT).
+Licenses from dependencies can be found in `open-source-licenses.txt`.
