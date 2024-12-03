@@ -4,6 +4,15 @@ set(MRUBY_BINARY "${MRUBY_DIR}/bin/mruby")
 set(MRBC_BINARY "${MRUBY_DIR}/bin/mrbc")
 set(MRUBY_STATIC "${MRUBY_DIR}/build/host/lib/libmruby.a")
 
+file(READ ${MRUBY_DIR}/include/mruby/version.h mruby_version_h)
+
+string(REGEX MATCH "MRUBY_RELEASE_MAJOR ([0-9]*)" _ ${mruby_version_h})
+set(MRUBY_RELEASE_MAJOR ${CMAKE_MATCH_1})
+string(REGEX MATCH "MRUBY_RELEASE_MINOR ([0-9]*)" _ ${mruby_version_h})
+set(MRUBY_RELEASE_MINOR ${CMAKE_MATCH_1})
+string(REGEX MATCH "MRUBY_RELEASE_TEENY ([0-9]*)" _ ${mruby_version_h})
+set(MRUBY_RELEASE_TEENY ${CMAKE_MATCH_1})
+
 ExternalProject_Add(
   mruby
   SOURCE_DIR ${MRUBY_DIR}

@@ -2,7 +2,7 @@ function(add_end2end_test dir)
   set(host_ruby ${CMAKE_CURRENT_LIST_DIR}/${dir}/host.rb)
   set(lightstorm_ruby ${CMAKE_CURRENT_LIST_DIR}/${dir}/lightstorm.rb)
   set(host_c ${CMAKE_CURRENT_BINARY_DIR}/${dir}/host.c)
-  set(lightstorm_c ${CMAKE_CURRENT_BINARY_DIR}/${dir}/lighstorm.c)
+  set(lightstorm_c ${CMAKE_CURRENT_BINARY_DIR}/${dir}/lightstorm.c)
   set(target_name end2end_test_${dir}.exe)
   add_custom_command(
     OUTPUT ${lightstorm_c}
@@ -11,7 +11,7 @@ function(add_end2end_test dir)
     DEPENDS ${lightstorm_ruby} lightstorm)
   add_custom_command(
     OUTPUT ${host_c}
-    COMMAND $<TARGET_FILE:mrbc_binary> -Blighstorm_host -o ${host_c}
+    COMMAND $<TARGET_FILE:mrbc_binary> -Blightstorm_host -o ${host_c}
             ${host_ruby}
     DEPENDS ${host_ruby})
   add_executable(${target_name} end2end_test_main.c ${host_c} ${lightstorm_c})

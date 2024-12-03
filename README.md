@@ -4,7 +4,7 @@ Simplified version of [Firestorm](https://www.youtube.com/watch?v=NfMX-dFMSr0) t
 
 ## Development Setup
 
-You can either use a codespace or a [devcontainer](https://code.visualstudio.com/docs/devcontainers/containers). For a local setup, follow the steps below.
+You can either use a [codespace](https://docs.github.com/en/codespaces/getting-started/quickstart) or a [devcontainer](https://code.visualstudio.com/docs/devcontainers/containers). For a local setup, follow the steps below.
 
 ### Install Dependencies
 
