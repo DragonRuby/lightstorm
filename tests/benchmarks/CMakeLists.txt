@@ -7,10 +7,11 @@ function(add_bench_executable ruby)
     COMMAND $<TARGET_FILE:mrbc_binary> -Blightstorm_bench -o ${host_c}
             ${full_ruby_path}
     DEPENDS ${full_ruby_path})
-  add_executable(${target_name} benchmarks_bytecode_main.c ${host_c})
+  add_executable(${target_name} benchmarks_bytecode_main.c ${host_c}
+                                ${CMAKE_SOURCE_DIR}/simple_kpc.c)
   target_include_directories(
     ${target_name}
-    PRIVATE ${CMAKE_SOURCE_DIR}/third_party/mruby/include
+    PRIVATE ${CMAKE_SOURCE_DIR}/third_party/mruby/include ${CMAKE_SOURCE_DIR}
             ${CMAKE_SOURCE_DIR}/third_party/mruby/build/host/include)
   target_compile_options(${target_name} PRIVATE -g)
   target_link_libraries(${target_name} PRIVATE mruby_static m)
