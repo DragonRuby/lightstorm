@@ -2,7 +2,7 @@
 
 Simplified version of [Firestorm](https://www.youtube.com/watch?v=NfMX-dFMSr0) targeting C instead of machine code directly.
 
-You can find more details about our approach in this blog post: [Lightstorm: minimalistic Ruby compiler](TBD).
+You can find more details about our approach in this blog post: [Lightstorm: minimalistic Ruby compiler](https://blog.llvm.org/posts/2024-12-03-minimalistic-ruby-compiler/).
 
 Depending on the workload, lightstorm can significantly speedup the existing code.
 Here is an example of speedups observed for [aobench](https://openbenchmarking.org/test/pts/aobench) benchmark.
