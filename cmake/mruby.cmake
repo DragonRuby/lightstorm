@@ -32,6 +32,14 @@ add_dependencies(mruby_binary mruby)
 install(
   FILES $<TARGET_FILE:mruby_binary>
   DESTINATION ${CMAKE_INSTALL_BINDIR}
+  PERMISSIONS
+    OWNER_EXECUTE
+    OWNER_WRITE
+    OWNER_READ
+    GROUP_EXECUTE
+    GROUP_READ
+    WORLD_EXECUTE
+    WORLD_READ
   RENAME lightstorm-mruby)
 
 add_executable(mrbc_binary IMPORTED GLOBAL)
@@ -40,6 +48,14 @@ add_dependencies(mrbc_binary mruby)
 install(
   FILES $<TARGET_FILE:mrbc_binary>
   DESTINATION ${CMAKE_INSTALL_BINDIR}
+  PERMISSIONS
+    OWNER_EXECUTE
+    OWNER_WRITE
+    OWNER_READ
+    GROUP_EXECUTE
+    GROUP_READ
+    WORLD_EXECUTE
+    WORLD_READ
   RENAME lightstorm-mrbc)
 
 add_library(mruby_static STATIC IMPORTED GLOBAL)
